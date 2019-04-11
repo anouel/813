@@ -1,5 +1,5 @@
 ---
-title: "Data Exercise 1"
+title: "Data Exercise 3"
 author: "Devin Judge-Lord"
 date: \today
 output: pdf_document 
@@ -37,7 +37,7 @@ library(here)
 
 <!-- R chunk to set up Stata chunks -->
 <!-- If you have Stata, make eval=TRUE -->
-```{r Statasetup, include=FALSE, eval=TRUE}
+```{r Statasetup, include=FALSE, eval=FALSE}
 devtools::install_github("Hemken/Statamarkdown", dependencies = F)
 library(Statamarkdown)
 stataexe <- find_stata()
@@ -58,8 +58,8 @@ We have the following data for the 60 persons (22 women and 38 men) who complete
 
 To retrieve your data, execute in Stata:
 <!-- Stata chunk to make data -->
-<!-- use your seed and make eval = TRUE -->
-```{stata, eval = TRUE}
+<!-- Replace 1234 with your seed and make eval = TRUE -->
+```{stata, eval = FALSE}
 net install PS813_EX3, from(https://faculty.polisci.wisc.edu/weimer)
 
 PS813_EX3 1234
@@ -68,9 +68,10 @@ save "data/EX3.dta"
 ```
 
 <!-- R chunk to load data -->
-```{r data, eval=TRUE}
+```{r data}
 d <- haven::read_dta("data/EX3.dta") %>%
   rename(Gender = Sex)
+d
 ```
 
 <!-- If printing assignments, it is nice to use \large or \Large text -->
