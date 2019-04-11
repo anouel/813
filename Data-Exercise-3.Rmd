@@ -1,0 +1,93 @@
+---
+title: "Data Exercise 1"
+author: "Devin Judge-Lord"
+date: \today
+output: pdf_document 
+header-includes:  ## Add any Latex packages you need (or use a preamble/template)
+    - \usepackage{setspace} ## spacing text 
+---
+
+```{r setup, include=FALSE}
+## Sets defaults for R chunks
+knitr::opts_chunk$set(echo = TRUE, # echo = TRUE means that your code will show
+                      warning=FALSE,
+                      message=FALSE,
+                      # fig.path='Figs/', ## where to save figures
+                      fig.height = 3,
+                      fig.width = 3,
+                      fig.align = 'center')
+
+## Add any R packages you require. 
+## Here are some we will use in 811:
+requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
+              "devtools",
+              "magrittr",
+              "here")
+
+## Install any you don't have
+to_install <- c(requires %in% rownames(installed.packages()) == FALSE)
+install.packages(c(requires[to_install], "NA"), repos = "https://cloud.r-project.org/" )
+
+## Load all required R packages
+library(tidyverse)
+library(ggplot2); theme_set(theme_bw())
+library(magrittr)
+library(here)
+```
+
+```{r Statasetup, include=FALSE, eval=FALSE}
+devtools::install_github("Hemken/Statamarkdown")
+library(Statamarkdown)
+stataexe <- find_stata()
+knitr::opts_chunk$set(engine.path = list(stata = stataexe))
+```
+
+Women at the Deer Valley Utility Company claim that their job performances are not being rewarded to the same degree as the job performances of men. Is there statistical evidence to support this complaint? You have the following data for the 60 persons (22 women and 38 men) who completed the trainee program two years ago and remain employed by the company:
+
+`Salary`: thousands of dollars.
+
+`Gender`: "1" for men and "0" for women.
+
+`Rating`: The employee's average performance rating over the last two years. The scale has a top score of 100. The company claims that performance rating is the primary factor in the determination of salary.)
+
+`Credits` earned either in college courses or company programs.
+
+To retrieve your data, execute in Stata:
+```{stata, eval = FALSE}
+net install PS813_EX3, from(https://faculty.polisci.wisc.edu/weimer)
+
+PS813_EX3 yourseed
+```
+
+Prepare a summary of your findings for the Director of the Office of Equal Opportunity. Include a brief discussion of other factors you might want to investigate before issuing a final report.
+
+<!-- If printing assignments, it is nice to use \large or \Large text -->
+\Large
+
+# Hypotheses
+
+H1: Job performances of women are rewarded differently than the job performances of men. That is, the relationship between salary and performance differs by gender. 
+
+H0: There is no difference in how men's performance and women's performance are rewarded. That is, the relationship between salary and performance does not differ by gender. 
+
+# Model
+
+The dependent variable is salary. For employee $i$, let their salary be $y_i$.
+
+$y_i = \beta_0 + ... + \epsilon_i$
+
+# Hypothesis test
+\Large
+
+Lorem ipsum $\beta_? = 0$
+
+Lorem ipsum $\beta_? \neq 0$
+
+# Findings
+\doublespacing
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+# Discussion
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
