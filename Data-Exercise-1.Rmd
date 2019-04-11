@@ -89,7 +89,7 @@ Then load it into R with the `readstata13` package:
 **Note: R is looking for "EX1.dta" in a folder called "data" whereever this .Rmd files is saved**
 ```{r data}
 ## Load your data, defining an R object called "d"
-d <- readstata13::read.dta13(here("data/EX1.dta"))
+d <- haven::read_dta(here("data/EX1.dta"))
 glimpse(d)
 ```
 

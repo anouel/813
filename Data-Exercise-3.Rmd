@@ -35,6 +35,8 @@ library(magrittr)
 library(here)
 ```
 
+<!-- R chunk to set up Stata chunks -->
+<!-- If you have Stata, make eval=TRUE -->
 ```{r Statasetup, include=FALSE, eval=FALSE}
 devtools::install_github("Hemken/Statamarkdown")
 library(Statamarkdown)
@@ -42,7 +44,9 @@ stataexe <- find_stata()
 knitr::opts_chunk$set(engine.path = list(stata = stataexe))
 ```
 
-Women at the Deer Valley Utility Company claim that their job performances are not being rewarded to the same degree as the job performances of men. Is there statistical evidence to support this complaint? You have the following data for the 60 persons (22 women and 38 men) who completed the trainee program two years ago and remain employed by the company:
+Women at the Deer Valley Utility Company claim that their job performances are not being rewarded to the same degree as the job performances of men. Is there statistical evidence to support this complaint? Prepare a summary of your findings for the Director of the Office of Equal Opportunity. Include a brief discussion of other factors you might want to investigate before issuing a final report.
+
+You have the following data for the 60 persons (22 women and 38 men) who completed the trainee program two years ago and remain employed by the company:
 
 `Salary`: thousands of dollars.
 
@@ -53,13 +57,20 @@ Women at the Deer Valley Utility Company claim that their job performances are n
 `Credits` earned either in college courses or company programs.
 
 To retrieve your data, execute in Stata:
+<!-- Stata chunk to make data -->
+<!-- use your seed and make eval = TRUE -->
 ```{stata, eval = FALSE}
 net install PS813_EX3, from(https://faculty.polisci.wisc.edu/weimer)
 
 PS813_EX3 yourseed
+
+save "data/EX3.dta"
 ```
 
-Prepare a summary of your findings for the Director of the Office of Equal Opportunity. Include a brief discussion of other factors you might want to investigate before issuing a final report.
+<!-- R chunk to load data -->
+```{r data, eval=FALSE}
+d <- haven::read_dta("data/EX3.dta")
+```
 
 <!-- If printing assignments, it is nice to use \large or \Large text -->
 \Large
