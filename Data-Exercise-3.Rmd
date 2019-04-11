@@ -127,7 +127,7 @@ ggplot(m1 %>% filter(term != "(Intercept)")) +
   labs(x="", y="OLS Estimate")
 ```
 
-Why is this wrong? Let's plot the results against our data!
+Let's plot the results against our data!
 ```{r gender_rating_plot}
 b0 <- m1$estimate[1]
 b1 <- m1$estimate[2]
@@ -140,10 +140,10 @@ p +
                 y = b0 + b1*0 + b2*Rating) ) + 
   scale_color_discrete() +
   labs(color = "",
-       y = "Predicted salary") 
+       y = "Predicted salary (thousands of dollars)") 
 ```
 
-What is wrong with this picture? Why does this model fail to test the hypothesis? What did it test? 
+Why does this model fail to test the hypothesis? What did it test? How should we interpret the coefficient of `r round(m1$estimate[2],1)` on Gender? 
 
 <!-- Back to the stuff you do want to do -->
 \color{black}
