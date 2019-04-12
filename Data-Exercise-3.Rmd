@@ -48,7 +48,7 @@ library(ggplot2); theme_set(theme_bw()) # global plot theme
     scale_fill_viridis_d(..., begin = 0, end = .7)
 ```
 
-<!-- R chunk to set up Stata chunks -->
+<!-- Now an R chunk to set up Stata chunks -->
 <!-- If you have Stata, make eval=TRUE -->
 ```{r Statasetup, include=FALSE, eval=FALSE}
 devtools::install_github("Hemken/Statamarkdown", dependencies = F)
@@ -70,7 +70,7 @@ We have the following data for 60 people:
 `Credits` earned either in college courses or company programs.
 
 Retrieve data from *Stata* and load them into **R**.
-<!-- Stata chunk to make data -->
+<!-- Now a Stata chunk to make data -->
 <!-- Replace 1234 with your seed and make eval = TRUE -->
 ```{stata, eval = FALSE}
 net install PS813_EX3, from(https://faculty.polisci.wisc.edu/weimer)
@@ -78,13 +78,13 @@ PS813_EX3 1234
 save "data/EX3.dta"
 ```
 
-<!-- R chunk to load data -->
+<!-- An R chunk to load data -->
 ```{r data}
-d <- read_dta("data/EX3.dta") %>%
+d <- read_dta("data/EX3.dta") %>% zap_formats() %>%
   mutate(Gender = factor(Sex, labels = c("Women","Men")))
 ```
 
-First, let us plot the raw data. 
+First, let us examine the raw data. 
 ```{r summary}
 # scatterplot
 p <- ggplot(d) + 
@@ -129,21 +129,41 @@ ggplot(m1 %>% filter(term != "(Intercept)")) +
 
 Let's plot the results against our data!
 ```{r gender_rating_plot}
+# illustrating with yhat formula; more easily done with augment()
 b0 <- m1$estimate[1]
 b1 <- m1$estimate[2]
 b2 <- m1$estimate[3]
 
 p +
-  geom_line(aes(color = "Men", 
+  geom_line(aes(color = "Men", # yhat for men
                 y = b0 + b1*1 + b2*Rating) ) + 
-  geom_line(aes(color = "Women", 
-                y = b0 + b1*0 + b2*Rating) ) + 
-  scale_color_discrete() +
-  labs(color = "",
-       y = "Predicted salary (thousands of dollars)") 
+  geom_line(aes(color = "Women", # yhat for women
+                y = b0 + b1*0 + b2*Rating) )  
 ```
 
-Why does this model fail to test the hypothesis? What did it test? How should we interpret the coefficient of `r round(m1$estimate[2],1)` on Gender? 
+**Interpretation:** Why does this model fail to test the hypothesis? What hypothesis did it test? How should we interpret the coefficient of `r round(m1$estimate[2],1)` on Gender? 
+
+**Fit:** Let's also plot the residuals. Aside from interpretation, we want to know where our model is a better or worse fit with the data, especially if residuals seem to vary systematically over the range of our data.
+
+`augment` computs tidy residuals, among other cool things.
+```{r residuals}
+m1 <- lm(Salary ~ Gender + Rating, data = d) %>% 
+  augment()
+
+ggplot(m1) +
+  aes(y = .resid, x = Rating) + 
+  geom_point(aes(color = Gender)) + 
+  scale_color_discrete() + 
+  ## to show how risiduals are the distance between an 
+  ## observation and the regression line:
+  geom_hline(yintercept = 0, color = "dark grey") +
+  geom_text(x= mean(m1$Rating), y = 0, 
+            label = "Regression line") +
+  geom_col(aes(fill = Gender), alpha = .2, position ="identity") +
+  ## + labels:
+  labs(title = "Residuals (Observed - Predicted Salary)",
+       y = "Residuals (in thousands of dollars)") 
+```
 
 <!-- Back to the stuff you do want to do -->
 \color{black}
