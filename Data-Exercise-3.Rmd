@@ -91,7 +91,7 @@ p <- ggplot(d) +
   aes(x = Rating, y = Salary, color = Gender) + 
   geom_point(aes(alpha = Credits)) + scale_color_discrete()
 
-# quick y ~ mx linear regression per group
+# quick y ~ mx + b linear regression per group
 p + geom_smooth(method = lm, se = F, fullrange = T)
 ```
 
@@ -112,7 +112,8 @@ H0: There is no difference in how men's performance and women's performance are 
 The dependent variable is salary. For employee $i$, let their salary be $y_i$ in the model $y_i = \beta_0 + ... + \epsilon_i$. $\beta_0$ is the predicted salary, $\hat{y}$, when all other variables in the model are 0.
 
 \color{red}
-Note: The model, $y_i = \beta_0 + \beta_1*Gender + \beta_2*Rating + \epsilon_i$, does *not* test the relationship of interest. 
+Note: The model, $y_i = \beta_0 + \beta_1*Gender_i + \beta_2*Rating_i + \epsilon_i$, does *not* test the relationship of interest.
+
 ```{r gender_rating_model, fig.height = 1}
 m1 <- lm(Salary ~ Gender + Rating, data = d) %>% 
   tidy(conf.int = TRUE) 
@@ -127,7 +128,7 @@ ggplot(m1 %>% filter(term != "(Intercept)")) +
   labs(x="", y="OLS Estimate")
 ```
 
-Let's plot the results against our data!
+As always, let's plot the results against our data!
 ```{r gender_rating_plot}
 # illustrating with yhat formula; more easily done with augment()
 b0 <- m1$estimate[1]
@@ -143,7 +144,7 @@ p +
 
 **Interpretation:** Why does this model fail to test the hypothesis? What hypothesis did it test? How should we interpret the coefficient of `r round(m1$estimate[2],1)` on Gender? 
 
-**Fit:** Let's also plot the residuals. Aside from interpretation, we want to know where our model is a better or worse fit with the data, especially if residuals seem to vary systematically over the range of our data.
+**Fit:** Let's also plot the residuals. Aside from interpretation, we want to know where (e.g. for what performance ratings) our model fits the data and where it does not, especially if residuals seem to vary systematically over the range of our data.
 
 `augment` computs tidy residuals, among other cool things.
 ```{r residuals}
