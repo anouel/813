@@ -1,0 +1,345 @@
+---
+title: "Data Exercise 3"
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+## Sets defaults for R chunks
+knitr::opts_chunk$set(echo = TRUE, # echo = TRUE means that your code will show
+                      warning=FALSE,
+                      message=FALSE,
+                      fig.path='figs/', ## where to save figures
+                      fig.height = 3,
+                      fig.width = 4,
+                      fig.align = 'center')
+
+## Add any R packages you require. 
+## Here are some we will use in 811:
+requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
+              "broom",
+              "haven",
+              "devtools",
+              "magrittr",
+              "margins",
+              "lmtest",
+              "here")
+
+## Install any you don't have
+to_install <- c(!requires %in% rownames(installed.packages()))
+install.packages(c(requires[to_install], "NA"), repos = "https://cloud.r-project.org/" )
+
+## Load all required R packages
+library(tidyverse)
+library(broom)
+library(haven)
+library(magrittr)
+library(margins)
+library(here)
+library(ggplot2); theme_set(theme_bw()) # global plot theme
+## Colorblind and greyscale print-friendly scales
+  options(
+    ggplot2.continuous.color = "viridis",
+    ggplot2.continuous.fill = "viridis"
+  )
+  scale_color_discrete <- function(...)
+    scale_color_viridis_d(..., begin = 0, end = .7)
+  scale_fill_discrete <- function(...)
+    scale_fill_viridis_d(..., begin = 0, end = .7)
+```
+
+<!-- Now an R chunk to set up Stata chunks -->
+<!-- If you have Stata, make eval=TRUE -->
+```{r Statasetup, include=FALSE, eval=FALSE}
+devtools::install_github("Hemken/Statamarkdown", dependencies = F)
+library(Statamarkdown)
+stataexe <- find_stata()
+knitr::opts_chunk$set(engine.path = list(stata = stataexe))
+```
+
+Women at the Deer Valley Utility Company claim that their job performances are not rewarded to the same degree as the job performances of men. Is there statistical evidence to support this complaint? This summary analysis for the Director of the Office of Equal Opportunity includes findings and a brief discussion of other factors we may want to investigate before issuing a final report.
+
+We have the following data for 60 people:
+
+`Salary`: thousands of dollars.
+
+`Gender`: "1" for men and "0" for women.
+
+`Rating`: The employee's average performance rating over the last two years. The scale has a top score of 100. The company claims that performance rating is the primary factor in the determination of salary.
+
+`Credits` earned either in college courses or company programs.
+
+Retrieve data from *Stata* and load them into **R**.
+<!-- Now a Stata chunk to make data -->
+<!-- Replace 1234 with your seed and make eval = TRUE -->
+```{stata, eval = FALSE}
+net install PS813_EX3, from(https://faculty.polisci.wisc.edu/weimer)
+PS813_EX3 1234
+save "data/EX3.dta"
+```
+
+<!-- An R chunk to load data -->
+```{r data}
+d <- read_dta("data/EX3.dta") %>% zap_formats() %>%
+  mutate(Gender = factor(Sex, labels = c("Women","Men")))
+```
+
+First, let us examine the raw data. 
+```{r summary}
+# scatterplot
+p <- ggplot(d) + 
+  aes(x = Rating, y = Salary, color = Gender) + 
+  geom_point(aes(alpha = Credits)) + scale_color_discrete()
+
+# quick y ~ mx + b linear regression per group
+p + geom_smooth(method = lm, se = F, fullrange = T)
+```
+
+
+<!-- If printing assignments, it is nice to use \large or \Large text -->
+\Large
+
+# Hypotheses
+
+H1: Job performances of women are rewarded differently than the job performances of men. That is, the relationship between salary and performance differs by gender. 
+
+H0: There is no difference in how men's performance and women's performance are rewarded. That is, the relationship between salary and performance does not differ by gender. 
+
+(There are least two other ways to write this hypothesis and at least one slightly different hypothesis that might better address the question.)
+
+# Model
+
+The dependent variable is salary. For employee $i$, let their salary be $y_i$ in the model $y_i = \beta_0 + ... + \epsilon_i$. $\beta_0$ is the predicted salary, $\hat{y}$, when all other variables in the model are 0.
+
+
+---
+
+# A model
+
+Note: The model, $y_i = \beta_0 + \beta_1*Gender_i + \beta_2*Rating_i + \epsilon_i$, does *not* test the relationship of interest. 
+```{r gender_rating_model, fig.height = 1}
+model_1 <- lm(Salary ~ Gender + Rating, data = d) 
+m1 <- model_1 %>% 
+  tidy(conf.int = TRUE) 
+
+ggplot(m1 %>% filter(term != "(Intercept)")) + 
+  aes(x = term,
+      y = estimate, 
+      ymin = conf.low, 
+      ymax = conf.high) + 
+  geom_pointrange() + 
+  coord_flip() + 
+  labs(x="", y="OLS Estimate")
+```
+
+### Let's plot the results against our data!
+```{r gender_rating_plot}
+# illustrating with yhat formula; more easily done with augment()
+b0 <- m1$estimate[1]
+b1 <- m1$estimate[2]
+b2 <- m1$estimate[3]
+
+p +
+  geom_line(aes(color = "Men", # yhat for men
+                y = b0 + b1*1 + b2*Rating) ) + 
+  geom_line(aes(color = "Women", # yhat for women
+                y = b0 + b1*0 + b2*Rating) )  
+```
+
+### Interpretation
+Why does this model fail to test the hypothesis? What hypothesis did it test? How should we interpret the coefficient of `r round(b1,1)` on Gender? How should we interpret the coefficient of `r round(b2,1)` on Performance Rating? 
+
+
+```{r gender_rating_plot-extended}
+m1 <- augment(model_1)
+
+p + 
+  geom_line(aes(y = m1$.fitted)) + # with .fitted from augment()
+  scale_x_continuous(limits = c(-20, max(d$Rating))) + 
+  scale_y_continuous(limits = c(b0-5, max(d$Salary))) + 
+  #geom_hline(yintercept =  b0) + 
+  geom_label(aes(color = "Men"), x = 0, y = b0 + b1, label = expression(beta[0]+beta[1]*1), hjust = 0, vjust = 1,show.legend = FALSE, check_overlap = T)+ 
+  geom_label(aes(color = "Women"), x = 0, y = b0, label = expression(beta[0]+beta[1]*0), hjust = 0, vjust = 1, show.legend = FALSE, check_overlap = T)+
+    geom_label(aes(color = "Men"), x = 0, y = b0 + b1, label = round(b0 + b1,1), hjust = 1,  color = "black",  show.legend = FALSE, check_overlap = T)+
+  geom_label(aes(color = "Women"), x = 0, y = b0, label = round(b0,1), hjust = 1, color = "black", show.legend = FALSE, check_overlap = T)+
+  geom_point(aes(color = "Men"), x = 0, y = b0 + b1)+ 
+  geom_point(aes(color = "Women"), x = 0, y = b0) 
+```
+
+### Fit 
+Let's also plot the residuals. Aside from interpretation, we want to know where our model is a better or worse fit with the data, especially if residuals seem to vary systematically over the range of our data.
+
+`augment` computs tidy residuals, among other cool things.
+```{r gender_rating_residuals}
+p + 
+  geom_line(aes(y = m1$.fitted)) + # with .fitted from augment()
+  geom_point(aes(y = m1$.fitted), shape = 1, alpha = .2) + # with .fitted from augment()
+  geom_segment(aes(xend = Rating, yend = m1$.fitted ), alpha = .2, size = 2)
+
+ggplot(m1) +
+  aes(y = .resid, x = Rating) + 
+  geom_point(aes(color = Gender)) + 
+  scale_color_discrete() + 
+  ## to show how risiduals are the distance between an 
+  ## observation and the regression line:
+  geom_hline(yintercept = 0, color = "dark grey") +
+  geom_text(x= mean(m1$Rating), y = 0, 
+            label = "Regression line") +
+  geom_col(aes(fill = Gender), alpha = .2, position ="identity") +
+  ## + labels:
+  labs(title = "Residuals (Observed - Predicted Salary)",
+       y = "Residuals (in thousands of dollars)") 
+```
+
+
+
+
+# A correct model 
+(not yet the one Dave wants)
+
+The model, $y_i = \beta_0 + \beta_1*Gender_i + \beta_2*Rating_i + \beta_3*Gender_i*Rating_i + \epsilon_i$, does test the relationship of interest; how gender may affect the relationship between performance and pay, i.e. is there a significant interaction of gender and performance in predicted pay? 
+
+```{r genderXrating_model, fig.height = 1}
+## Note: when we include the interaction, lm() adds the direct effects
+model_2 <- lm(Salary ~ Gender*Rating, data = d) 
+
+m2 <- model_2 %>% 
+  tidy(conf.int = TRUE) 
+
+ggplot(m2 %>% filter(term != "(Intercept)")) + 
+  aes(x = term,
+      y = estimate, 
+      ymin = conf.low, 
+      ymax = conf.high) + 
+  geom_pointrange() + 
+  coord_flip() + 
+  labs(x="", y="OLS Estimate")
+```
+
+### Let's plot the results against our data!
+
+```{r genderXrating_plot}
+# illustrating with yhat formula; more easily done with augment()
+b0 <- m2$estimate[1]
+b1 <- m2$estimate[2]
+b2 <- m2$estimate[3]
+b3 <- m2$estimate[4]
+
+p +
+  geom_line(aes(color = "Men", # yhat for men
+                y = b0 + b1*1 + b2*Rating + b3*1*Rating) ) + 
+  geom_line(aes(color = "Women", # yhat for women
+                y = b0 + b1*0 + b2*Rating+ b3*0*Rating) )  
+```
+
+### Interpretation
+
+- How should we interpret a $\beta_0$ of `r round(b0,3)`? 
+
+- How should we interpret the coefficient of `r round(b1,3)` on Gender? 
+
+- How should we interpret the coefficient of `r round(b2,3)` on Rating? 
+
+- How should we interpret the coefficient of `r round(b3,3)` on Gender*Rating? 
+
+```{r}
+## Yeah, ok, that is really hard. Lets not. 
+```
+
+```{r genderXrating_plot-extended}
+m2 <-  augment(model_2)
+
+p + 
+  geom_line(aes(y = m2$.fitted)) + # with .fitted from augment()
+  scale_x_continuous(limits = c(0, max(d$Rating))) + 
+  scale_y_continuous(limits = c(45, max(d$Salary))) + 
+  geom_hline(yintercept =  b0) + 
+  geom_label(aes(color = "Men"), x = 0, y = b0 + b1, label = expression(beta[0]+beta[1]*1), hjust = 0, vjust = 1, show.legend = FALSE)+ 
+  geom_label(aes(color = "Women"), x = 0, y = b0, label = expression(beta[0]+beta[1]*0), hjust = 0,vjust = 1, show.legend = FALSE)+
+  geom_point(aes(color = "Men"), x = 0, y = b0 + b1)+ 
+  geom_point(aes(color = "Women"), x = 0, y = b0) 
+```
+
+
+### Better interpretation
+What is a more meaningful interpretation? 
+
+#### The joint effect.
+$\beta_2*Gender + \beta_3*Gender$
+
+For every additional performance rating point, women get paid $`r round(b2,3)*1000` and men get paid \$`r round(b2+b3,3)*1000` more.
+
+We can still calculate the effect of Gender or Rating alone. When there is an interaction term in the model, this is called the marginal effect. 
+
+The [`margins` package](https://cran.r-project.org/web/packages/margins/vignettes/Introduction.html) calculated marginal effects. 
+
+The Average Marginal Effect is the **average** change in y when x increases by one unit. Note the similar effect size as we found for the coeficient of Gender in the model with no interaction term. 
+
+```{r margins}
+marginal_effects <- margins(model_2)
+summary(marginal_effects)
+
+me <- as_tibble(summary(marginal_effects))
+
+ggplot(me) + 
+  aes(x = factor,
+      y = AME, 
+      ymin = lower, 
+      ymax = upper)+
+  geom_hline(yintercept = 0, color = "gray80") +
+    geom_pointrange() + coord_flip() +
+    labs(x = NULL, y = "Average Marginal Effect") 
+
+## use the cplot method in the margins library to do the work calculating effects but without drawing its plot.
+cplot_points <- cplot(model_2, x = "Gender", draw = F)
+
+ggplot(data = cplot_points) +
+  aes(x = reorder(xvals, yvals),
+      y = yvals, 
+      ymin = lower, 
+      ymax = upper) + 
+  geom_pointrange() + 
+  labs(x = NULL, y = "Predicted Salary") 
+```
+
+
+
+### Fit: 
+Let's also plot the residuals. Aside from interpretation, we want to know where our model is a better or worse fit with the data, especially if residuals seem to vary systematically over the range of our data.
+
+`augment` computs tidy residuals, among other cool things.
+```{r genderXrating_residuals}
+p + 
+  geom_line(aes(y = m2$.fitted)) + # with .fitted from augment()
+  geom_point(aes(y = m2$.fitted), shape = 1, alpha = .2) + # with .fitted from augment()
+  geom_segment(aes(xend = Rating, yend = m2$.fitted ), alpha = .2, size = 2)
+
+ggplot(m2) +
+  aes(y = .resid, x = Rating) + 
+  geom_point(aes(color = Gender)) + 
+  scale_color_discrete() + 
+  ## to show how risiduals are the distance between an 
+  ## observation and the regression line:
+  geom_hline(yintercept = 0, color = "dark grey") +
+  geom_text(x= mean(m2$Rating), y = 0, 
+            label = "Regression line") +
+  geom_col(aes(fill = Gender), alpha = .2, position ="identity") +
+  ## + labels:
+  labs(title = "Residuals (Observed - Predicted Salary)",
+       y = "Residuals (in thousands of dollars)") 
+```
+
+
+
+
+# Likelihood Ratio Test of Nested Models
+
+Testing the hypothesis that adding the interaction term affects goodness of fit against the null hypothesis that the two models are equivalent:
+```{r f-test}
+library(lmtest)
+lrtest(model_1, model_2)
+
+summary(model_1)
+summary(model_2)
+```

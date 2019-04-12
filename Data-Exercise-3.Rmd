@@ -115,7 +115,9 @@ The dependent variable is salary. For employee $i$, let their salary be $y_i$ in
 Note: The model, $y_i = \beta_0 + \beta_1*Gender_i + \beta_2*Rating_i + \epsilon_i$, does *not* test the relationship of interest.
 
 ```{r gender_rating_model, fig.height = 1}
-m1 <- lm(Salary ~ Gender + Rating, data = d) %>% 
+model_1 <- lm(Salary ~ Gender + Rating, data = d) 
+
+m1 <- model_1 %>% 
   tidy(conf.int = TRUE) 
 
 ggplot(m1 %>% filter(term != "(Intercept)")) + 
@@ -142,7 +144,7 @@ p +
                 y = b0 + b1*0 + b2*Rating) )  
 ```
 
-**Interpretation:** Why does this model fail to test the hypothesis? What hypothesis did it test? How should we interpret the coefficient of `r round(m1$estimate[2],1)` on Gender? 
+**Interpretation:** Why does this model fail to test the hypothesis? What hypothesis did it test? How should we interpret the coefficient of `r round(b1,1)` on Gender? 
 
 **Fit:** Let's also plot the residuals. Aside from interpretation, we want to know where (e.g. for what performance ratings) our model fits the data and where it does not, especially if residuals seem to vary systematically over the range of our data.
 
@@ -184,3 +186,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor i
 # Discussion
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+# Appendex
+
+summary(model_1)
