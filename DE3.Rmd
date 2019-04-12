@@ -240,7 +240,7 @@ ggplot(m1) +
 
 
 
-# A correct model 
+# Yet another model 
 (not yet the one Dave wants)
 
 The model, $y_i = \beta_0 + \beta_1*Gender_i + \beta_2*Rating_i + \beta_3*Gender_i*Rating_i + \epsilon_i$, does test the relationship of interest; how gender may affect the relationship between performance and pay, i.e. is there a significant interaction of gender and performance on predicted pay? 
