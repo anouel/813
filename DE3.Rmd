@@ -1,8 +1,10 @@
 ---
-title: "Data Exercise 3"
+title: "Interpreting Interaction Effects"
 output:
   html_document:
     code_folding: hide
+    toc: true
+    toc_float: true
 ---
 
 ```{r setup, include=FALSE}
@@ -19,11 +21,14 @@ knitr::opts_chunk$set(echo = TRUE, # echo = TRUE means that your code will show
 ## Here are some we will use in 811:
 requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
               "broom",
-              "haven",
+              "haven", 
               "devtools",
               "magrittr",
               "margins",
               "lmtest",
+              "viridisLite",
+              "truncnorm",
+              "ggridges",
               "here")
 
 ## Install any you don't have
@@ -39,6 +44,7 @@ library(margins)
 library(here)
 library(ggplot2); theme_set(theme_bw()) # global plot theme
 ## Colorblind and greyscale print-friendly scales
+library(viridisLite)
   options(
     ggplot2.continuous.color = "viridis",
     ggplot2.continuous.fill = "viridis"
@@ -70,10 +76,9 @@ We have the following data for 60 people:
 
 `Credits` earned either in college courses or company programs.
 
-Retrieve data from *Stata* and load them into **R**.
 <!-- Now a Stata chunk to make data -->
 <!-- Replace 1234 with your seed and make eval = TRUE -->
-```{stata, eval = FALSE}
+```{stata, echo = FALSE, eval = FALSE}
 net install PS813_EX3, from(https://faculty.polisci.wisc.edu/weimer)
 PS813_EX3 1234
 save "data/EX3.dta"
@@ -85,17 +90,28 @@ d <- read_dta("data/EX3.dta") %>% zap_formats() %>%
   mutate(Gender = factor(Sex, labels = c("Women","Men")))
 ```
 
-First, let us examine the raw data. 
+First, let's examine the raw data. 
 ```{r summary}
+ggplot(d) + 
+  aes(x = Rating, y = Salary) + 
+  geom_point(aes(alpha = Credits)) 
+
 # scatterplot
 p <- ggplot(d) + 
   aes(x = Rating, y = Salary, color = Gender) + 
   geom_point(aes(alpha = Credits)) + scale_color_discrete()
+p
+```
 
-
+# What do we mean when we say there is a pay gap? 
+```{r gaps}
 # means per group
 p + geom_hline(aes(yintercept = `mean(Salary)`, color = Gender), data = d %>% group_by(Gender) %>% summarise(mean(Salary)))
 
+m <- lm(Salary ~ Gender + Rating, data = d) %>% 
+  augment() 
+
+p + geom_line(aes(y = m$.fitted)) 
 
 # quick y ~ mx + b linear regression per group
 p + geom_smooth(method = lm, se = F, fullrange = T)
@@ -113,14 +129,14 @@ H0: There is no difference in how men's performance and women's performance are 
 
 (There are least two other ways to write this hypothesis and at least one slightly different hypothesis that might better address the question.)
 
-# Model
+# Linear regression
 
 The dependent variable is salary. For employee $i$, let their salary be $y_i$ in the model $y_i = \beta_0 + ... + \epsilon_i$. $\beta_0$ is the predicted salary, $\hat{y}$, when all other variables in the model are 0.
 
 
 ---
 
-# A model
+## A model
 
 Does the model, $y_i = \beta_0 + \beta_1*Gender_i + \epsilon_i$, test the relationship of interest? 
 ```{r gender_model, fig.height = 1}
@@ -149,7 +165,9 @@ p +
   geom_line(aes(color = "Men", # yhat for men
                 y = b0 + b1*1) ) + 
   geom_line(aes(color = "Women", # yhat for women
-                y = b0 + b1*0) )  
+                y = b0 + b1*0) )  +
+  geom_ribbon(aes(ymax = b0 + b1*1, 
+                  ymin = b0 + b1*0), alpha = .1, color = NA)
 ```
 
 Basically, a t-test.
@@ -159,7 +177,7 @@ t.test(Salary ~ Gender, data = d) %>% tidy()
 ```
 ---
 
-# Another model
+## Another model
 
 Does the model, $y_i = \beta_0 + \beta_1*Gender_i + \beta_2*Rating_i + \epsilon_i$, test the relationship of interest?
 ```{r gender_rating_model, fig.height = 1}
@@ -189,7 +207,9 @@ p +
   geom_line(aes(color = "Men", # yhat for men
                 y = b0 + b1*1 + b2*Rating) ) + 
   geom_line(aes(color = "Women", # yhat for women
-                y = b0 + b1*0 + b2*Rating) )  
+                y = b0 + b1*0 + b2*Rating) )  +
+  geom_ribbon(aes(ymax = b0 + b1*1+ b2*Rating, 
+                  ymin = b0 + b1*0+ b2*Rating), alpha = .1, color = NA)
 ```
 
 ### Interpretation
@@ -215,7 +235,7 @@ p +
 ### Fit 
 Let's also plot the residuals. Aside from interpretation, we want to know where our model is a better or worse fit with the data, especially if residuals seem to vary systematically over the range of our data.
 
-`augment` computs tidy residuals, among other cool things.
+`augment` computes tidy residuals, among other cool things.
 ```{r gender_rating_residuals}
 p + 
   geom_line(aes(y = m1$.fitted)) + # with .fitted from augment()
@@ -240,7 +260,7 @@ ggplot(m1) +
 
 
 
-# Yet another model 
+## Yet another model 
 (not yet the one Dave wants)
 
 The model, $y_i = \beta_0 + \beta_1*Gender_i + \beta_2*Rating_i + \beta_3*Gender_i*Rating_i + \epsilon_i$, does test the relationship of interest; how gender may affect the relationship between performance and pay, i.e. is there a significant interaction of gender and performance on predicted pay? 
@@ -276,7 +296,9 @@ p +
   geom_line(aes(color = "Men", # yhat for men
                 y = b0 + b1*1 + b2*Rating + b3*1*Rating) ) + 
   geom_line(aes(color = "Women", # yhat for women
-                y = b0 + b1*0 + b2*Rating+ b3*0*Rating) )  
+                y = b0 + b1*0 + b2*Rating+ b3*0*Rating) )  +
+  geom_ribbon(aes(ymax = b0 + b1*1+ b2*Rating+ b3*1*Rating, 
+                  ymin = b0 + b1*0+ b2*Rating+ b3*0*Rating), alpha = .1, color = NA)
 ```
 
 ### Interpretation
@@ -289,9 +311,6 @@ p +
 
 - How should we interpret the coefficient of `r round(b3,3)` on Gender*Rating? 
 
-```{r}
-## Yeah, ok, that is really hard. Lets not. 
-```
 
 ```{r genderXrating_plot-extended}
 m2 <-  augment(model_2)
@@ -314,15 +333,15 @@ What is a more meaningful interpretation?
 #### The joint effect.
 $\beta_2*Rating + \beta_3*Gender*Rating = \beta_2 + \beta_3*Gender$ *per Rating unit.*
 
-For every additional performance rating point, women get paid $`r round(b2,3)*1000` and men get paid \$`r round(b2+b3,3)*1000` more.
+For every additional performance rating point, women get paid an additional $`r round(b2,3)*1000` and men get paid an additional \$`r round(b2+b3,3)*1000`.
 
 ---
 
-We can still calculate the effect of Gender or Rating alone. When there is an interaction term in the model, this is called the marginal effect. 
+We can still calculate the effect of Gender or Rating. When there is an interaction term in the model, this is called the *marginal effect*. 
 
-The [`margins` package](https://cran.r-project.org/web/packages/margins/vignettes/Introduction.html) calculated marginal effects. 
+The [`margins` package](https://cran.r-project.org/web/packages/margins/vignettes/Introduction.html) calculates confidence intervals on marginal effects. 
 
-The Average Marginal Effect is the **average** change in y when x increases by one unit. Note the similar effect size as we found for the coeficient of Gender in the model with no interaction term. 
+The Average Marginal Effect is the **average** change in y when x increases by one unit. Note the similar effect size as we found for the coefficient on Gender in the model with no interaction term. In theory, how are these estimates similar? How are they different? 
 
 ```{r margins, fig.height=1.5}
 marginal_effects <- margins(model_2)
@@ -353,10 +372,10 @@ ggplot(data = cplot_points) +
 
 
 
-### Fit: 
+### Fit 
 Let's also plot the residuals. Aside from interpretation, we want to know where our model is a better or worse fit with the data, especially if residuals seem to vary systematically over the range of our data.
 
-`augment` computs tidy residuals, among other cool things.
+`augment` computes tidy residuals, among other cool things.
 ```{r genderXrating_residuals}
 p + 
   geom_line(aes(y = m2$.fitted)) + # with .fitted from augment()
@@ -384,10 +403,223 @@ ggplot(m2) +
 # Likelihood Ratio Test of Nested Models
 
 Testing the hypothesis that adding the interaction term affects goodness of fit against the null hypothesis that the two models are equivalent:
-```{r f-test}
+```{r lr-test}
 library(lmtest)
 lrtest(model_1, model_2)
+```
 
+---
+
+# Comparing models
+
+### F-statistics and R-squared
+
+`summary()` returns some statistics about our model. R-squared ($1- RSS/TSS$) indicates how much of the variance in salary our models explain. The F statistic is the mean regression sum of squares divided by the mean error sum of squares, so a larger F means more variance explained by the model and/or less unexplained variance. Its value will range from zero (a model that explains nothing compared to how much it does not explain) to an arbitrarily large number (a model that explains a lot compared to how much it does not explain). The p-value is for the null hypothesis for the full model is true (i.e., that all of the regression coefficients are zero).
+
+Which model has a higher R-Squared? Why? Is a higher R-Squared always better? 
+
+```{r f-stats}
 summary(model_1)
 summary(model_2)
 ```
+
+
+### AIC and BIC
+`glance()` gives us even more statistics with which to compare model fit. AIC and BIC are penalized-likelihood criteria; they penalize models for adding more variables ("measure of fit + complexity penalty") because adding more variables will usually give a better fit for any sample of data, but possibly a worse model for the broader population (and for parsimony of theory!). Thus, lower AIC and BIC are better.
+
+```{r model-stats}
+glance(model_1)
+glance(model_2)
+```
+
+---
+
+# Interactions with continuous variables 
+
+Suppose, rather than forcing a binary response, the company surveyed gender as a continuous variable, asking employees to report the extent to which their gender performance conformed with hegemonic masculinity on a scale from 0-100.
+
+The data:
+```{r Masculinity-summary}
+library(truncnorm)
+## recode gender as tuncated normal 
+## with mean "men"" and "women" at upper and lower quartiles
+## and 0 or 100 being two standard deviations from each mean, respectivly
+d %<>% mutate(Masculinity = ifelse(Gender == "Men", 
+                         rtruncnorm(60, a=0, b=100, mean = 75, sd = 12.5) ,
+                         rtruncnorm(60, a=0, b=100, mean = 25, sd = 12.5)
+                         ))
+
+library(ggridges)
+ggplot(d) +
+  aes(x = Masculinity, fill = ..x.., y = 0) +
+  geom_density_ridges_gradient(scale = 3, rel_min_height = 0.01) + 
+  labs(y = "Density", x = "Hegemonic Masculinity Conformance") +
+  guides(fill = "none")
+
+# scatterplot
+p <- ggplot(d) + 
+  aes(x = Rating, y = Salary, color = Masculinity) + 
+  geom_point() + scale_color_viridis_c()
+p
+```
+
+The model: $y_i = \beta_0 + \beta_1*Gender_i + \beta_2*Rating_i + \beta_3*Gender_i*Rating_i + \epsilon_i$
+
+```{r MasculinityXrating_model, fig.height = 1}
+## Note: when we include the interaction, lm() adds the direct effects
+model_3 <- lm(Salary ~ Masculinity*Rating, data = d) 
+
+m3 <- model_3 %>% 
+  tidy(conf.int = TRUE) 
+m3
+
+ggplot(m3 %>% filter(term != "(Intercept)")) + 
+  aes(x = term,
+      y = estimate, 
+      ymin = conf.low, 
+      ymax = conf.high) + 
+  geom_pointrange() + 
+  coord_flip() + 
+  labs(x="", y="OLS Estimate")
+```
+
+### Let's plot the results against our data!
+
+```{r MasculinityXrating_plot}
+# illustrating with yhat formula; more easily done with augment()
+b0 <- m3$estimate[1]
+b1 <- m3$estimate[2]
+b2 <- m3$estimate[3]
+b3 <- m3$estimate[4]
+
+# we can pick a few values (e.g., quartiles)
+p +
+  geom_line(aes(linetype = "25% Masculinity", # yhat for women
+                y = b0 + b1*25 + b2*Rating+ b3*25*Rating), color = "black")  +
+  geom_line(aes(linetype = "75% Masculinity", # yhat for men
+                y = b0 + b1*75 + b2*Rating + b3*75*Rating), color = "black" ) + 
+  geom_ribbon(aes(ymax = b0 + b1*75+ b2*Rating+ b3*75*Rating, 
+                  ymin = b0 + b1*25+ b2*Rating+ b3*25*Rating), alpha = .1, color = NA)
+
+# or a bunch
+m3 <-  augment(model_3) %>%
+  # a unique id for each obs
+  mutate(id = row_number()) 
+
+# add an intercept observation for each person
+m3intercept <- m3 %>% full_join(m3 %>% mutate(.fitted = b0 + Masculinity*b1,
+                                Salary = b0 + Masculinity*b1,
+                                Rating = 0)) 
+ggplot(m3intercept) + 
+  aes(x = Rating, y = Salary, color = Masculinity) + 
+  geom_line(aes(y = .fitted, group = id))+ 
+  geom_point() + 
+  scale_color_viridis_c() 
+```
+
+### Interpretation
+
+- How should we interpret a $\beta_0$ of `r round(b0,3)`? 
+
+- How should we interpret the coefficient of `r round(b1,3)` on Masculinity? 
+
+- How should we interpret the coefficient of `r round(b2,3)` on Rating? 
+
+- How should we interpret the coefficient of `r round(b3,3)` on Masculinity*Rating? 
+
+### Better interpretation
+
+#### The joint effect.
+$\beta_2*Rating + \beta_3*Masculinity*Rating = \beta_2 + \beta_3*Masculinity$ *per Rating unit.*
+
+For every additional performance rating point, a person reporting no conformance with hegemonic masculinity gets paid an additional $`r round(b2,3)*1000` and a person reporting perfect conformance with hegemonic masculinity get paid an additional \$`r round(b2+b3*100,3)*1000`.
+
+---
+
+We can still calculate the effect of Masculinity or Rating. When there is an interaction term in the model, this is called the *marginal effect*. 
+
+The [`margins` package](https://cran.r-project.org/web/packages/margins/vignettes/Introduction.html) calculates confidence intervals on marginal effects. 
+
+The Average Marginal Effect is the **average** change in y when x increases by one unit. Note the similar effect size as we found for the coefficient of Masculinity in the model with no interaction term. In theory, how are these estimates similar? How are they different? 
+
+Notice that the AME of Masculinity is significantly different from 0, even though the direct effect was not.
+
+```{r masculinity-margins, fig.height=2}
+marginal_effects <- margins(model_3)
+summary(marginal_effects)
+
+me <- as_tibble(summary(marginal_effects))
+
+ggplot(me) + 
+  aes(x = factor,
+      y = AME, 
+      ymin = lower, 
+      ymax = upper)+
+  geom_hline(yintercept = 0, color = "gray80") +
+    geom_pointrange() + coord_flip() +
+    labs(x = NULL, y = "Average Marginal Effect") 
+
+## use the cplot method in the margins library to do the work calculating effects but without drawing its plot.
+cplot_points <- cplot(model_3, x = "Masculinity", draw = F)
+
+ggplot(data = cplot_points) +
+  aes(x = xvals,
+      y = yvals, 
+      ymin = lower, 
+      ymax = upper) + 
+  geom_pointrange() + 
+  labs(x = "Masculinity",
+       y = "Predicted Salary") 
+```
+
+
+
+### Fit 
+Let's also plot the residuals. Aside from interpretation, we want to know where our model is a better or worse fit with the data, especially if residuals seem to vary systematically over the range of our data.
+
+`augment` computs tidy residuals, among other cool things.
+```{r MasculinityXrating_residuals}
+ggplot(m3) +
+  aes(y = .resid, x = Rating) + 
+  geom_point(aes(color = Masculinity)) + 
+  ## to show how risiduals are the distance between an 
+  ## observation and the regression line:
+  geom_hline(yintercept = 0, 
+             color = "dark grey") +
+  scale_color_viridis_c() +
+  geom_text(x= mean(m3$Rating), 
+            y = 0, 
+            label = "Regression line") +
+  geom_col(aes(fill = Masculinity), 
+           alpha = .4, 
+           position ="identity") +
+  ## + labels:
+  labs(title = "Residuals (Observed - Predicted Salary)",
+       y = "Residuals (in thousands of dollars)") 
+```
+
+
+---
+
+# Comparing the same model with different measures of gender.
+
+### F-statistics and R-squared
+
+Which model has a higher R-Squared? Why? Is a higher R-Squared always better? 
+
+```{r}
+summary(model_2)
+summary(model_3)
+```
+
+
+### AIC and BIC
+
+Which model has a lower AIC/BIC? Why?
+
+```{r}
+glance(model_2)
+glance(model_3)
+```
+
+### Bonus: How does the standard deviation we pick for simulating our masculinity data affect our ability to explain differences in pay?
