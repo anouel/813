@@ -109,7 +109,35 @@ Instead of relying on functions like `augment`, `Zelig`, or `margins`, we can es
 
 The central limit theorem shows that, with a large enough sample and bounded variance, we can simulate the distribution of parameters with draws from a multivariate normal distribution.
 
-We can thus write a function for a large number of random draws from a multivariate normal distribution, setting our model estimates as the means. 
+Consider draws of 10, 100, and 1000 for one paramater:
+```{r simple-multi, fig.height=4, fig.width=8}
+draw <- function(n){
+    # rnorm(n) returns n draws from a normal with a given mean and sd,
+  # mvrnorm(n) returns n draws from a multivariate normal
+  # given a vector of means (i.e. our betas) and sigma, the covariance
+rmvnorm(n = n, 
+        mean = model$coefficients, 
+        sigma = vcov(model)) %>%
+    as_tibble() %>% 
+    rename_all(~str_c("beta_", .)) %>% 
+    mutate(n = n)
+}
+  
+draws <- map_dfr(c(10, 100, 1000), draw)
+
+draws %>% 
+  ggplot() +
+  geom_dotplot(aes(x = beta_Report), binwidth = .02) +
+  geom_vline(xintercept = tidy(model) %>% 
+               filter(term == "Report") %>% 
+               .$estimate, 
+             color = "red") +
+  facet_grid(n ~ ., scales = "free_y")
+```
+
+---
+
+We can thus write a function to estimate a distribution of predicted probabilities using a large number of random draws from a multivariate normal distribution, setting our model estimates as the means. 
  
 In Stata:
 ```
@@ -142,9 +170,6 @@ In R:
 library(mvtnorm)# for multivariate normals
 
 Logit_bounds <- function(model, Take, Report, Night, Convict){
-  # rnorm(n) returns n draws from a normal with a given mean and sd,
-  # mvrnorm(n) returns n draws from a multivariate normal
-  # given a vector of means (i.e. our betas) and sigma, the covariance
   predictions <- rmvnorm(n = 1000, 
                          mean = model$coefficients, 
                          sigma = vcov(model)) %>%
@@ -199,7 +224,7 @@ predicted %>%
   scale_color_discrete()
 ```
 
----
+
 
 # More examples
 
