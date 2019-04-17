@@ -50,16 +50,12 @@ library(ggplot2); theme_set(theme_bw()) # global plot theme
     scale_fill_viridis_d(..., begin = 0, end = .7)
 ```
 
-<!-- An R chunk to load data -->
-```{r data}
-d <- read_dta("data/EX4.dta") %>% zap_formats() 
-```
-
-
 # How do we model logit in R?
 ## Logit is just a linear model predicting log odds. 
 
 ```{r model}
+d <- read_dta("data/EX4.dta") %>% zap_formats() 
+
 model <- glm(Probat ~ Take + Report + Night + Convict, 
              data=d, 
              family=binomial(link="logit"))
@@ -72,7 +68,7 @@ Interpreting log odds, however, is tricky. Thus we transform the estimated log o
 
 ## Predicted probability
 ```{r augment, fig.height=4}
-# a data frame of possible values
+# A data frame of values at which to estimate probabilities:
 values <- d %>% 
   expand(Take = mean(Take), Report, Night = 1, Convict)
 
@@ -109,7 +105,7 @@ predicted %>%
 
 # How can we calculate the uncertainty in these estimates?
 
-Instead of relying on functions like `augment` or `margins`, we can estimate uncertainty more directly by sampling the assumed distribution of our parameters.
+Instead of relying on functions like `augment`, `Zelig`, or `margins`, we can estimate uncertainty more directly by sampling the assumed distribution of our parameters.
 
 The central limit theorem shows that, with a large enough sample and bounded variance, we can simulate the distribution of parameters with draws from a multivariate normal distribution.
 
