@@ -38,6 +38,7 @@ library(broom)
 library(haven)
 library(magrittr)
 library(here)
+library(mvtnorm)# for multivariate normals
 library(ggplot2); theme_set(theme_bw()) # global plot theme
 # Colorblind and greyscale print-friendly scales
   options(
@@ -111,6 +112,8 @@ The central limit theorem shows that, with a large enough sample and bounded var
 
 Consider draws of 10, 100, and 1000 for one paramater:
 ```{r simple-multi, fig.height=4, fig.width=8}
+library(mvtnorm)# for multivariate normals
+
 draw <- function(n){
     # rnorm(n) returns n draws from a normal with a given mean and sd,
   # mvrnorm(n) returns n draws from a multivariate normal
@@ -135,9 +138,8 @@ draws %>%
   facet_grid(n ~ ., scales = "free_y")
 ```
 
----
 
-We can thus write a function to estimate a distribution of predicted probabilities using a large number of random draws from a multivariate normal distribution, setting our model estimates as the means. 
+We can thus write a function to estimate a distribution of predicted probabilities using a large number of random draws from the assumed multivariate normal distribution of our model estimates. That is, we draw from a multivariate normal distribution, with our model estimates as the means and the variance-covariance matrix, then calculate the log odds and a predicted probability of probation for each draw. 
  
 In Stata:
 ```
@@ -167,7 +169,6 @@ end
 
 In R:
 ```{r logit_bounds}
-library(mvtnorm)# for multivariate normals
 
 Logit_bounds <- function(model, Take, Report, Night, Convict){
   predictions <- rmvnorm(n = 1000, 
