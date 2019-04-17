@@ -358,7 +358,7 @@ ggplot(me) +
     geom_pointrange() + coord_flip() +
     labs(x = NULL, y = "Average Marginal Effect") 
 
-## use the cplot method in the margins library to do the work calculating effects but without drawing its plot.
+## use the cplot method in the margins library to do the work of calculating effects but without drawing its plot.
 cplot_points <- cplot(model_2, x = "Gender", draw = F)
 
 ggplot(data = cplot_points) +

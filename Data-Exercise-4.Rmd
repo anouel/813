@@ -3,41 +3,42 @@ title: "Data Exercise 4"
 author: "Devin Judge-Lord"
 date: \today
 output: pdf_document 
-header-includes:  ## Add any Latex packages you need (or use a preamble/template)
-    - \usepackage{setspace} ## spacing text 
+header-includes:  # Add any Latex packages you need (or use a preamble/template)
+    - \usepackage{setspace} # spacing text 
 ---
 
 ```{r setup, include=FALSE}
-## Sets defaults for R chunks
+# Sets defaults for R chunks
 knitr::opts_chunk$set(echo = TRUE, # echo = TRUE means that your code will show
                       warning=FALSE,
                       message=FALSE,
-                      # fig.path='Figs/', ## where to save figures
+                      # fig.path='Figs/', # where to save figures
                       fig.height = 3,
                       fig.width = 4,
                       fig.align = 'center')
 
-## Add any R packages you require. 
-## Here are some we will use in 811:
+# Add any R packages you require. 
+# Here are some we will use in 811:
 requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
               "broom",
               "haven",
               "devtools",
               "magrittr",
+              "mvtnorm",
               "here")
 
-## Install any you don't have
+# Install any you don't have
 to_install <- c(!requires %in% rownames(installed.packages()))
 install.packages(c(requires[to_install], "NA"), repos = "https://cloud.r-project.org/" )
 
-## Load all required R packages
+# Load all required R packages
 library(tidyverse)
 library(broom)
 library(haven)
 library(magrittr)
 library(here)
 library(ggplot2); theme_set(theme_bw()) # global plot theme
-## Colorblind and greyscale print-friendly scales
+# Colorblind and greyscale print-friendly scales
   options(
     ggplot2.continuous.color = "viridis",
     ggplot2.continuous.fill = "viridis"
@@ -73,42 +74,14 @@ d <- read_dta("data/EX4.dta") %>% zap_formats()
 ```
 
 
+```{r model}
+model <- glm(Probat ~ Take + Report + Night + Convict, 
+             data=d, 
+             family=binomial(link="logit"))
 
-In Stata:
-```
-* Calculation of Logit Bounds in Exercise 4 */
-/* for a particular set of values of the independent variables */
-/* After estimating logit, get coefficient and covariances */
-/* (Important: enter variables in order below) */
-/* matrix define b=e(b) */
-/* matrix define V=e(V) */
-/* Excute this program then execute the following */
-/* Logit_bounds 1 2 3 4 */
-/* where 1 is the value of report */
-/* 2 is the value of convict */
-/* 3 is the value of take */
-/* 4 is the value of night */
-/* */
-/* */
-capture program drop Logit_bounds
-program define Logit_bounds
-drop _all
-drawnorm c_report c_convict c_take c_night c_cons, means(b) cov(V) cstorage(full) n(1000)
-generate z=`1'*c_report+`2'*c_convict+`3'*c_take+`4'*c_night+c_cons
-generate p = 1/(1+exp(-z))
-sum p, d
-end
+knitr::kable(tidy(model), digits = 3)
 ```
 
-In R:
-```{r logit_bounds}
-Logit_bounds <- function(betas, varience){
-}
-```
-
-# Predicted probablity of parole
-
-# Uncertainty in these estimates
 
 # Findings
 \doublespacing
