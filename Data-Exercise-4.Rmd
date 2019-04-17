@@ -51,7 +51,9 @@ library(ggplot2); theme_set(theme_bw()) # global plot theme
 <!-- Now an R chunk to set up Stata chunks -->
 <!-- If you have Stata, make eval=TRUE -->
 ```{r Statasetup, include=FALSE, eval=FALSE}
-devtools::install_github("Hemken/Statamarkdown", dependencies = F)
+if(!"Statamarkdown" %in% rownames(installed.packages())){
+  devtools::install_github("Hemken/Statamarkdown", dependencies = F)
+}
 library(Statamarkdown)
 stataexe <- find_stata()
 knitr::opts_chunk$set(engine.path = list(stata = stataexe))
@@ -61,7 +63,7 @@ knitr::opts_chunk$set(engine.path = list(stata = stataexe))
 <!-- Replace 1234 with your seed and make eval = TRUE -->
 ```{stata, eval = FALSE}
 net install PS813_EX4, from(https://faculty.polisci.wisc.edu/weimer) 
-PS813_EX4 num
+PS813_EX4 1234
 save "data/EX4.dta"
 ```
 
@@ -100,8 +102,7 @@ end
 
 In R:
 ```{r logit_bounds}
-Logit_bounds <- function(betas, ){
-  
+Logit_bounds <- function(betas, varience){
 }
 ```
 
