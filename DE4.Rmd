@@ -50,25 +50,6 @@ library(ggplot2); theme_set(theme_bw()) # global plot theme
     scale_fill_viridis_d(..., begin = 0, end = .7)
 ```
 
-<!-- Now an R chunk to set up Stata chunks -->
-<!-- If you have Stata, make eval=TRUE -->
-```{r Statasetup, include=FALSE, eval=FALSE}
-if(!"Statamarkdown" %in% rownames(installed.packages())){
-  devtools::install_github("Hemken/Statamarkdown", dependencies = F)
-}
-library(Statamarkdown)
-stataexe <- find_stata()
-knitr::opts_chunk$set(engine.path = list(stata = stataexe))
-```
-
-<!-- Now a Stata chunk to make data -->
-<!-- Replace 1234 with your seed and make eval = TRUE -->
-```{stata, eval = FALSE}
-net install PS813_EX4, from(https://faculty.polisci.wisc.edu/weimer) 
-PS813_EX4 1234
-save "data/EX4.dta"
-```
-
 <!-- An R chunk to load data -->
 ```{r data}
 d <- read_dta("data/EX4.dta") %>% zap_formats() 
@@ -89,7 +70,7 @@ knitr::kable(tidy(model), digits = 3)
 # How do we interpret a logit?
 Interpreting log odds, however, is tricky. Thus we transform the estimated log odds into predicted probabilities at relevant potential values of our variables. 
 
-# Predicted probability of probation
+## Predicted probability
 ```{r augment, fig.height=4}
 # a data frame of possible values
 values <- d %>% 
@@ -176,7 +157,7 @@ Logit_bounds <- function(model, Take, Report, Night, Convict){
     rename_all(~str_c("beta_", .)) %>% 
     # z = log odds (the linear combination of predictors)
     mutate(z = `beta_(Intercept)` + beta_Take*Take + beta_Report*Report + beta_Night*Night + beta_Convict*Convict) %>% 
-    # p = probabilty. Apply logistic function (inverse logit) to the log odds
+    # p = probabilty. Apply the logistic (inverse logit) function to the log odds
     mutate(p = 1/(1+exp(-z)) ) %>%
     # Add values to the data frame
     mutate(Take = Take,
@@ -195,7 +176,7 @@ Logit_bounds(model = model,
   glimpse()
 ```
 
-Apply this function to interesting possible values of our explainatory variables with `pmap` from `purrr`: 
+Apply this function to interesting possible values of our explainatory variables with `pmap` from [`purrr`](https://www.rstudio.com/resources/cheatsheets/#purrr): 
 ```{r predictions, fig.width=8, fig.height=5}
 # a data frame of possible values
 values <- d %>% 
@@ -238,8 +219,6 @@ df <- read.csv("https://sciences.ucf.edu/biology/d4lab/wp-content/uploads/sites/
 
 m1 <- glm(data=df, infected ~ age + weight + sex, family = "binomial") # add spaces to variables separated by arithmetic operators
 link_func <- m1$family$linkinv # maybe this could become a generic function
-
-library(tidyverse)
 
 # anonymous functions are quick and easy to type, my preference if only one input arg
 newdat_func <- . %>% # meant to start with df
