@@ -226,8 +226,36 @@ predicted %>%
 ```
 
 
+# How do we interpret the results? what do logit bounds actually mean?
 
-# More examples
+Devin: Good question. "Logit_bounds" may not be the best name for the above function. "Logit_distributions" or "Logit_predictions" might be better, since it does not (yet) calculate bounds (i.e. confidence intervals). What it does do is create distributions with a mean and, critically, *variance*, for predicted probabilities of interest. My understanding is that Dave wants you to use these distributions to estimate confidence intervals around certain probabilities of interest in order comment on the extent to which the department should continue writing reports (i.e., under what conditions, if any, can we say these reports matter). 
+
+# How do we run the following commands from Stata in R? `estat gof`, `estat classification`, `lroc`, `lsens`.
+
+Devin: All of these functions return statistics about a model; the latter three about how well it predicts observed outcomes. 
+
+[`estat`](https://www.reed.edu/psychology/stata/analyses/parametric/Regression/pe/estat.html) returns various model statistics. For may of these statistics, we might use `summary()`, `glance()`, `augment()`, `vcov()` depending on what exactly we are after. 
+
+`estat classfication` returns a [classification table](https://stackoverflow.com/questions/13661025/classification-table-for-logistic-regression-in-r). 
+
+[`lroc`](https://stats.idre.ucla.edu/stata/faq/how-can-i-test-the-difference-in-area-under-roc-curve-for-two-logistic-regression-models/) computes the area under the receiver
+operating character (ROC) curve and [`lsens`](https://www.stata.com/manuals13/rlsens.pdf) runs a sensitivity analysis.  I know `ROCR` and [others](https://rviews.rstudio.com/2019/03/01/some-r-packages-for-roc-curves/) do both of these things.
+
+`estat gof` is a goodness of fit test, specifically the F-test [(recall last week)](https://judgelord.github.io/813/DE3.html#comparing_models). 
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Extra resources
 
 [An R-bloggers post on simulating confidence intervals](https://www.r-bloggers.com/simulating-confidence-intervals/)
 

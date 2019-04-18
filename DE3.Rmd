@@ -76,18 +76,9 @@ We have the following data for 60 people:
 
 `Credits` earned either in college courses or company programs.
 
-<!-- Now a Stata chunk to make data -->
-<!-- Replace 1234 with your seed and make eval = TRUE -->
-```{stata, echo = FALSE, eval = FALSE}
-net install PS813_EX3, from(https://faculty.polisci.wisc.edu/weimer)
-PS813_EX3 1234
-save "data/EX3.dta"
-```
-
 <!-- An R chunk to load data -->
 ```{r data}
-d <- read_dta("data/EX3.dta") %>% zap_formats() %>%
-  mutate(Gender = factor(Sex, labels = c("Women","Men")))
+load("data/EX3.Rdata")
 ```
 
 First, let's examine the raw data. 
@@ -261,7 +252,6 @@ ggplot(m1) +
 
 
 ## Yet another model 
-(not yet the one Dave wants)
 
 The model, $y_i = \beta_0 + \beta_1*Gender_i + \beta_2*Rating_i + \beta_3*Gender_i*Rating_i + \epsilon_i$, does test the relationship of interest; how gender may affect the relationship between performance and pay, i.e. is there a significant interaction of gender and performance on predicted pay? 
 
@@ -286,7 +276,7 @@ ggplot(m2 %>% filter(term != "(Intercept)")) +
 ### Let's plot the results against our data!
 
 ```{r genderXrating_plot}
-# illustrating with yhat formula; more easily done with augment()
+# illustrating with yhat equasion; more easily done with augment()
 b0 <- m2$estimate[1]
 b1 <- m2$estimate[2]
 b2 <- m2$estimate[3]
@@ -310,6 +300,8 @@ p +
 - How should we interpret the coefficient of `r round(b2,3)` on Rating? 
 
 - How should we interpret the coefficient of `r round(b3,3)` on Gender*Rating? 
+
+- This model seems to fit the data well, for this range of Ratings, but do we have theoretical reasons for suspicion? Why or why not? If so, how might we adjust our data or model correct this? 
 
 
 ```{r genderXrating_plot-extended}
