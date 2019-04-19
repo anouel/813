@@ -67,7 +67,11 @@ knitr::kable(tidy(model), digits = 3)
 ```
 
 # How do we interpret a logit?
-Interpreting log odds, however, is tricky. Thus we transform the estimated log odds into predicted probabilities at relevant potential values of our variables. 
+Interpreting log odds, however, is tricky. Thus we transform the estimated log odds into predicted probabilities at relevant potential values of our variables. Log odds value $\hat{Y}$, can be converted into proportions/probabilities using the inverse logit function, $p = e^\hat{Y} / 1+e^\hat{Y}$, but most people have a hard time doing this in their head. A logistic regression intercept of 2 corresponds to odds of $e^2=7.39$, meaning that probation was about 7 times more likely than no probation for the reference group (0 convictions, no report, daytime crime, 0$ taken, etc.). However, interpreting other model coefficients is not as straightforward. This is because the inverse function assumes the log odds are relative to 0, whereas the regression coefficient for this relative to the intercept. To get a meaningful estimate of the change in probability, we have to run the logit function on the predicted value for this condition (i.e., plugging the coefficients into the regression equation). *Differences in predicted probabilities (e.g., between report and no report) depend on the value of the other coefficients*.
+
+With linear OLS regression, model coefficients have a straightforward interpretation: a model coefficient $\beta$ means that for every one-unit increase in $x$, the model predicts a $\beta$-unit increase in $\hat{Y}$  (the predicted value of the dependent variable). Technically, the logistic regression coefficient means the same thing: as $x$ goes up by 1, the log odds go up by $\beta$. However, log odds are difficult to interpret, especially *relative log odds*: while we can straightforwardly calculate $\beta$ log odds on its own, an *increase* of $\beta$ in log odds means something different *depending on what the log odds increased from*.
+
+tl;dr, just like last week, logit means *marginal* effects and *predicted probabilities*
 
 ## Predicted probability
 
@@ -147,7 +151,7 @@ draws %>%
         axis.ticks.y = element_blank())
 ```
 
-Let's look at our draws for two parameters (i.e., two dimensions of our multivariate normal):
+Now each draws on two parameters (i.e., two dimensions of our multivariate normal):
 ```{r multi-normal-2, fig.width=8}
 p <- draws %>% 
   filter(n == 1000) %>% 
@@ -189,7 +193,7 @@ vcov(model)[c(3,5),c(3,5)] %>%
   knitr::kable(caption = "Variance-Covariance Matrix")
 ```
 
-Imagining a multivariate (multi-dimensional) distribution with more than two parameters can be tricky, but to understand uncertianty in logit, we must understand *covarience*.
+Imagining a multivariate (multi-dimensional) distribution with more than two parameters can be tricky, but to understand uncertianty in logit, we must understand the relationship between *covarience* and predicted probability. 
 
 
 We can thus write a function to estimate a distribution of predicted probabilities using a large number of random draws from the assumed multivariate normal distribution of our model estimates. That is, we draw from a multivariate normal distribution, setting the means to our model estimates and $\sigma$ to the variance-covariance matrix, then calculate the log odds, and, finally, a predicted probability of probation for each draw.
@@ -243,7 +247,7 @@ Logit_bounds <- function(model, Take, Report, Night, Convict){
 }
 ```
 
-First, we'll out our function:
+First, let's test out our function:
 ```{r}
 Logit_bounds(model = model, 
              Take = mean(d$Take),
@@ -253,7 +257,7 @@ Logit_bounds(model = model,
   glimpse()
 ```
 
-Apply this function to interesting possible values of our explainatory variables with `pmap` from [`purrr`](https://www.rstudio.com/resources/cheatsheets/#purrr): 
+We can apply this function to interesting possible values of our explainatory variables with `pmap` from [`purrr`](https://www.rstudio.com/resources/cheatsheets/#purrr): 
 ```{r predictions, fig.height=5}
 # a data frame of possible values
 values <- d %>% 
