@@ -67,7 +67,7 @@ knitr::kable(tidy(model), digits = 3)
 ```
 
 # How do we interpret a logit?
-s
+
 Interpreting log odds is tricky. Thus we transform the estimated log odds, $\hat{Y}$, into predicted probabilities at relevant potential values of our variables. Log odds can be converted into proportions/probabilities using the inverse logit function:
 
 $p = e^\hat{Y} / 1+e^\hat{Y}$
@@ -78,7 +78,7 @@ With linear OLS regression, model coefficients have a straightforward interpreta
 
 tl;dr, interpreting logit means calculating *marginal* effects and *predicted probabilities*
 
-(just like last week)
+(just like [last week](https://judgelord.github.io/813/DE3.html#better_interpretation))
 
 ## Predicted probability
 
@@ -296,6 +296,12 @@ predicted %>%
 
 Look familiar? 
 
+To get distributions of predicted probability at specific values, you can either run the function on lots of values of interest and subset (like the plot above does) or run the function on just one set of values:
+
+```{r}
+
+```
+
 # How do we interpret the results? What are logit bounds?
 
 Devin: Good question. "Logit_bounds" may not be the best name for the above function. "Logit_distributions" or "Logit_predictions" might be better, since it does not (yet) calculate bounds (i.e. confidence intervals). What it does do is create distributions with a mean and, critically, *variance*, for predicted probabilities of interest. My understanding is that Dave wants you to use these distributions to estimate confidence intervals around certain probabilities of interest in order comment on the extent to which the department should continue writing reports (i.e., under what conditions, if any, can we say these reports matter). 
@@ -376,6 +382,8 @@ Another is to assess model performance. If a model that performs well across pos
 
 
 # More resources
+
+[A tutorial on interpreting Logit coeficients](http://www.mypolyuweb.hk/~sjpolit/logisticregression.html)
 
 [An R-bloggers post on simulating confidence intervals](https://www.r-bloggers.com/simulating-confidence-intervals/)
 
