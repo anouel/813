@@ -4,7 +4,7 @@ output:
   html_document:
     code_folding: hide
     toc: true
-    toc_float: true
+    #toc_float: true
 ---
 
 
@@ -67,11 +67,18 @@ knitr::kable(tidy(model), digits = 3)
 ```
 
 # How do we interpret a logit?
-Interpreting log odds, however, is tricky. Thus we transform the estimated log odds into predicted probabilities at relevant potential values of our variables. Log odds value $\hat{Y}$, can be converted into proportions/probabilities using the inverse logit function, $p = e^\hat{Y} / 1+e^\hat{Y}$, but most people have a hard time doing this in their head. A logistic regression intercept of 2 corresponds to odds of $e^2=7.39$, meaning that probation was about 7 times more likely than no probation for the reference group (0 convictions, no report, daytime crime, 0$ taken, etc.). However, interpreting other model coefficients is not as straightforward. This is because the inverse function assumes the log odds are relative to 0, whereas the regression coefficient for this relative to the intercept. To get a meaningful estimate of the change in probability, we have to run the logit function on the predicted value for this condition (i.e., plugging the coefficients into the regression equation). *Differences in predicted probabilities (e.g., between report and no report) depend on the value of the other coefficients*.
+s
+Interpreting log odds is tricky. Thus we transform the estimated log odds, $\hat{Y}$, into predicted probabilities at relevant potential values of our variables. Log odds can be converted into proportions/probabilities using the inverse logit function:
+
+$p = e^\hat{Y} / 1+e^\hat{Y}$
+
+But most people have a hard time doing this in their head. A logistic regression intercept of 4 corresponds to odds of $e^2=$ `r exp(4)`, meaning that probation was about `r round(exp(4))` times more likely than no probation for the reference group (0 convictions, no report, daytime crime, 0$ taken, etc.). However, interpreting other model coefficients is not as straightforward. This is because the simple inverse function calculates log odds relative to 0, whereas the regression coefficients are relative to the log odds of everything else in the regression including the intercept. To get a meaningful estimate of the change in probability, we have to run the logit function on the predicted value for each condition (i.e., plugging the coefficients into the regression equation). *Differences in predicted probabilities (e.g., between report and no report) depend on the value of the other coefficients*.
 
 With linear OLS regression, model coefficients have a straightforward interpretation: a model coefficient $\beta$ means that for every one-unit increase in $x$, the model predicts a $\beta$-unit increase in $\hat{Y}$  (the predicted value of the dependent variable). Technically, the logistic regression coefficient means the same thing: as $x$ goes up by 1, the log odds go up by $\beta$. However, log odds are difficult to interpret, especially *relative log odds*: while we can straightforwardly calculate $\beta$ log odds on its own, an *increase* of $\beta$ in log odds means something different *depending on what the log odds increased from*.
 
-tl;dr, just like last week, logit means *marginal* effects and *predicted probabilities*
+tl;dr, interpreting logit means calculating *marginal* effects and *predicted probabilities*
+
+(just like last week)
 
 ## Predicted probability
 
