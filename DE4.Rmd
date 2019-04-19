@@ -70,15 +70,17 @@ knitr::kable(tidy(model), digits = 3)
 Interpreting log odds, however, is tricky. Thus we transform the estimated log odds into predicted probabilities at relevant potential values of our variables. 
 
 ## Predicted probability
+
+`augment()` gives us predicted outcomes and standard errors. The `newdata` argument specifies values at which we want to predict. The default fitted value is on the scale of the linear predictors. `type.predict = "response"` applies the link function to the fitted values (for logit, this means transforming *log odds* into *predicted probability*).
 ```{r augment, fig.height=4}
 # A data frame of values at which to estimate probabilities:
 values <- d %>% 
   expand(Take = mean(Take), Report, Night = 1, Convict)
 
-# augment() gives us predicted outcomes and standard errors 
-# The new data argument specifies values at which we want to predict
-# type.predict applies the link function to the fitted values
-predicted <- augment(model, newdata = values, type.predict = "response") 
+predicted <- augment(model,  
+                     type.predict = "response",
+                     newdata = values
+                     ) 
 
 # Naming things a bit better
 predicted %<>% 
@@ -97,12 +99,16 @@ predicted %>%
 # As a plot
 predicted %>% 
   ggplot() + 
-  aes(x = factor(Report), y = .fitted) + 
+  aes(x = Report, y = .fitted, color = Report) + 
   geom_pointrange(aes(ymin = .fitted - 1.96*.se.fit,
                   ymax = .fitted + 1.96*.se.fit) )  + 
   coord_flip() +
   facet_wrap("Convictions", ncol = 1) +
-  labs(y = "Probability", x = "")
+  labs(y = "Probability", x = "") + 
+  scale_color_discrete() + 
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
 ```
 
 # How can we calculate the uncertainty in these estimates?
@@ -117,8 +123,7 @@ library(mvtnorm)# for multivariate normals
 
 draw <- function(n){
   # rnorm(n) returns n draws from a normal with a given mean and sd
-  # mvrnorm(n) returns n draws from a multivariate normal
-  # given a vector of means (i.e. our betas) and sigma, the covariance
+  # mvrnorm(n) returns n draws from a multivariate normal with a given a vector of means (here, our betas) and sigma, a covariance matrix (here, the estimated covariances between the parameter estimates)
 rmvnorm(n = n, 
         mean = model$coefficients, 
         sigma = vcov(model)) %>%
@@ -178,11 +183,16 @@ p + geom_smooth(se = F, method = "lm") + # (just to illustrate, not exactly the 
              label= round(vcov(model),1)[3,5], 
              color = "blue")
 
-vcov(model) %>% round(1)
+# Select the estimated covariances between the parameter estimates for Report and Convict
+vcov(model)[c(3,5),c(3,5)] %>% 
+  round(1) %>% 
+  knitr::kable(caption = "Variance-Covariance Matrix")
 ```
 
+Imagining a multivariate (multi-dimensional) distribution with more than two parameters can be tricky, but to understand uncertianty in logit, we must understand *covarience*.
 
-We can thus write a function to estimate a distribution of predicted probabilities using a large number of random draws from the assumed multivariate normal distribution of our model estimates. That is, we draw from a multivariate normal distribution, with our model estimates as the means and the variance-covariance matrix, then calculate the log odds and a predicted probability of probation for each draw. 
+
+We can thus write a function to estimate a distribution of predicted probabilities using a large number of random draws from the assumed multivariate normal distribution of our model estimates. That is, we draw from a multivariate normal distribution, setting the means to our model estimates and $\sigma$ to the variance-covariance matrix, then calculate the log odds, and, finally, a predicted probability of probation for each draw.
  
 In Stata:
 ```
@@ -233,7 +243,7 @@ Logit_bounds <- function(model, Take, Report, Night, Convict){
 }
 ```
 
-Test out our function:
+First, we'll out our function:
 ```{r}
 Logit_bounds(model = model, 
              Take = mean(d$Take),
@@ -244,7 +254,7 @@ Logit_bounds(model = model,
 ```
 
 Apply this function to interesting possible values of our explainatory variables with `pmap` from [`purrr`](https://www.rstudio.com/resources/cheatsheets/#purrr): 
-```{r predictions, fig.width=8, fig.height=5}
+```{r predictions, fig.height=5}
 # a data frame of possible values
 values <- d %>% 
   expand(Take = mean(Take), Report, Night, Convict)
@@ -275,7 +285,7 @@ predicted %>%
 
 Look familiar? 
 
-# How do we interpret the results? what do logit bounds actually mean?
+# How do we interpret the results? What are logit bounds?
 
 Devin: Good question. "Logit_bounds" may not be the best name for the above function. "Logit_distributions" or "Logit_predictions" might be better, since it does not (yet) calculate bounds (i.e. confidence intervals). What it does do is create distributions with a mean and, critically, *variance*, for predicted probabilities of interest. My understanding is that Dave wants you to use these distributions to estimate confidence intervals around certain probabilities of interest in order comment on the extent to which the department should continue writing reports (i.e., under what conditions, if any, can we say these reports matter). 
 
@@ -286,7 +296,7 @@ Devin: This is a theoretical question. What might policymakers care about?
 
 # Can we just use `confint`?
 
-Devin: Yes, in practice, we just use functions under the hood of `augment()`, `Zelig`, `margins`, and `confit`. The point of the exercise is to understand the concept of a confidence interval around a predicted probability coming from a logit model. Unlike linear regression, we can't just calculate standard errors from the variance. Notice that [`confint`](https://www.rdocumentation.org/packages/stats/versions/3.5.3/topics/confint) uses simple $t$ values for models of class `"lm"`, but it requires the variance-covariance matrix for `"glm"` and calls on more complex functions to compute the [profile likelihood](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3873110/). In short, the math for confidence intervals for Logit is not easy; it is easier to understand by looking at how the assumed distribution of the parameters translates to the distribution of probabilities.
+Devin: Yes, in practice, we just use functions under the hood of `augment()`, `Zelig`, `margins`, and `confit()`. The point of this exercise is to understand the concept of a confidence interval around a predicted probability coming from a logit model. Unlike linear regression, we can't just calculate standard errors from variance. Notice that [`confint`](https://www.rdocumentation.org/packages/stats/versions/3.5.3/topics/confint) uses simple $t$ values for models of class `"lm"`, but it requires the variance-covariance matrix for `"glm"` and calls on more complex functions to compute the [profile likelihood](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3873110/). In short, [the math for Logit is not easy](https://freakonometrics.hypotheses.org/52747); it is easier to understand by looking at how the assumed distribution of the parameters translates to the distribution of probabilities.
 
 
 # How do we run the following commands from Stata in R? `estat gof`, `estat classification`, `lroc`, `lsens`.
@@ -305,7 +315,53 @@ operating character (ROC) curve and [`lsens`](https://www.stata.com/manuals13/rl
 
 # When should we do sensitivity analyses? 
 
+Devin: We do a sensitivity analysis to evaluate a classification method. Any classification method has a sensitivity/specificity tradeoff; some give relatively more false negatives and others more false positives. Before we can evaluate our classification, we need to do some classifying. Let's start by classifying each case that our model gave probability less than .5 as a (no probation) and the rest a 1 (probation). We can just round our predicted probabilities. 
+
+```{r}
+predicted <- augment(model,  
+                     type.predict = "response"
+                     ) %>% 
+  mutate(classification = round(.fitted)) %>% 
+  mutate(type = ifelse(classification == 0 & Probat == 0, "True negative",
+                ifelse(classification == 1 & Probat == 1, "True positive",
+                ifelse(classification == 1 & Probat == 0, "False positive",
+                "False negative")))
+         )
+
+predicted %>% select(Probat, .fitted, classification, type)
+
+table <- predicted %>% group_by(type) %>%
+  count() 
+table
+```
+
+Specifictity = 
+True Positive / Positive = 
+Correctly predicted probation / probation = 
+`r round(table$n[4]/(table$n[1]+table$n[4]),2)`
+
+Sensitivity (recall) = 
+True Negative / Negative = 
+Correctly predicted no probation / no probation = 
+`r round(table$n[3]/(table$n[2]+table$n[3]),2)`
+
 # How do we interpret sensitivity analyses?
+An ROC curve measures these statistics at different possible cut-off points. 
+```{r ROC, fig.width=8}
+# devtools::install_github("sachsmc/plotROC")
+library(plotROC)
+
+predicted %>% 
+  mutate(Report = ifelse(Report == 1, "Report", "No Report")) %>%
+  ggplot() + 
+  geom_roc(aes(d = Probat, m = .fitted)) + 
+  style_roc() + 
+  facet_wrap("Report")
+```
+
+One use for this sensitivity-specificity analysis is choosing a cut-off point (e.g., for decision-making or for assigning cases to groups). 
+
+Another is to assess model performance. If a model that performs well across possible cut-off points, the ROC curve will hug the upper-left corner of the plot. *Area Under the Curve* (AUC) is a measure of model performance. 
 
 
 # More resources
@@ -316,8 +372,16 @@ operating character (ROC) curve and [`lsens`](https://www.stata.com/manuals13/rl
 
 [Interactions in Logit with `margins`](https://cran.r-project.org/web/packages/margins/vignettes/Introduction.html#interactions_in_logit)
 
+Logistic Regression is core to deep learning, or, conversely [logistic regression can be viewed as a simple kind of neural network](https://beamandrew.github.io/deeplearning/2017/02/23/deep_learning_101_part2.html)
+
+[Logistic Regression with a Neural Networks Mindset](https://edorado93.github.io/2018/09/07/Logistic-Regression-with-a-Neural-Networks-Mindset-9b5526c2ed46/)
+
+[A nice walk-through of classification with logit](https://freakonometrics.hypotheses.org/52747)
+
+[A great video tutorial explaining Support Vector Machines ](https://www.youtube.com/watch?v=N1vOgolbjSc)
+
 From a post on stack exchange: 
-```{r predict, fig.width=8, fig.height=8}
+```{r predict, fig.width=8, fig.height=5}
 df <- read.csv("https://sciences.ucf.edu/biology/d4lab/wp-content/uploads/sites/125/2018/11/parasites.txt", header = T)
 
 m1 <- glm(data=df, infected ~ age + weight + sex, family = "binomial") # add spaces to variables separated by arithmetic operators
