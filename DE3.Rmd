@@ -55,15 +55,6 @@ library(viridisLite)
     scale_fill_viridis_d(..., begin = 0, end = .7)
 ```
 
-<!-- Now an R chunk to set up Stata chunks -->
-<!-- If you have Stata, make eval=TRUE -->
-```{r Statasetup, include=FALSE, eval=FALSE}
-devtools::install_github("Hemken/Statamarkdown", dependencies = F)
-library(Statamarkdown)
-stataexe <- find_stata()
-knitr::opts_chunk$set(engine.path = list(stata = stataexe))
-```
-
 Women at the Deer Valley Utility Company claim that their job performances are not rewarded to the same degree as the job performances of men. Is there statistical evidence to support this complaint? This summary analysis for the Director of the Office of Equal Opportunity includes findings and a brief discussion of other factors we may want to investigate before issuing a final report.
 
 We have the following data for 60 people:
@@ -83,11 +74,12 @@ load("data/EX3.Rdata")
 
 First, let's examine the raw data. 
 ```{r summary}
+# scatterplots
 ggplot(d) + 
   aes(x = Rating, y = Salary) + 
   geom_point(aes(alpha = Credits)) 
 
-# scatterplot
+# add color by Gender, and save plot as p for future use
 p <- ggplot(d) + 
   aes(x = Rating, y = Salary, color = Gender) + 
   geom_point(aes(alpha = Credits)) + scale_color_discrete()
@@ -484,16 +476,16 @@ b1 <- m3$estimate[2]
 b2 <- m3$estimate[3]
 b3 <- m3$estimate[4]
 
-# we can pick a few values (e.g., quartiles)
+# We can pick a few values (e.g., quartiles)
 p +
-  geom_line(aes(linetype = "25% Masculinity", # yhat for women
+  geom_line(aes(linetype = "25% Masculinity", 
                 y = b0 + b1*25 + b2*Rating+ b3*25*Rating), color = "black")  +
-  geom_line(aes(linetype = "75% Masculinity", # yhat for men
+  geom_line(aes(linetype = "75% Masculinity", 
                 y = b0 + b1*75 + b2*Rating + b3*75*Rating), color = "black" ) + 
   geom_ribbon(aes(ymax = b0 + b1*75+ b2*Rating+ b3*75*Rating, 
                   ymin = b0 + b1*25+ b2*Rating+ b3*25*Rating), alpha = .1, color = NA)
 
-# or a bunch
+# Or we can pick a bunch of values (e.g., all combinations of values present in our data)
 m3 <-  augment(model_3) %>%
   # a unique id for each obs
   mutate(id = row_number()) 
@@ -502,6 +494,7 @@ m3 <-  augment(model_3) %>%
 m3intercept <- m3 %>% full_join(m3 %>% mutate(.fitted = b0 + Masculinity*b1,
                                 Salary = b0 + Masculinity*b1,
                                 Rating = 0)) 
+
 ggplot(m3intercept) + 
   aes(x = Rating, y = Salary, color = Masculinity) + 
   geom_line(aes(y = .fitted, group = id))+ 
