@@ -261,7 +261,10 @@ Logit_bounds(model = model,
              Report = 1, 
              Night = 1, 
              Convict = 0) %>%
-  glimpse()
+  glimpse() %>% 
+  summarise(lower = quantile(p, probs = .1),
+            upper = quantile(p, probs = .9),
+            mean = mean(p))
 ```
 
 We can apply this function to interesting possible values of our explainatory variables with `pmap` from [`purrr`](https://www.rstudio.com/resources/cheatsheets/#purrr): 
@@ -306,19 +309,7 @@ predicted %>%
 
 Look familiar? 
 
-To get distributions of predicted probability at specific values, you can either run the function on lots of values of interest and subset (like the plot above does) or run the function on just one set of values:
-
-```{r}
-Logit_bounds(Take = 5000,
-             Convict = 2, 
-             Night = 1, 
-             Report = 0, 
-             model = model) %>%
-  group_by(Take, Convict, Night, Report) %>% 
-  summarise(lower = quantile(p, probs = .1),
-            upper = quantile(p, probs = .9),
-            mean = mean(p)) 
-```
+To get distributions of predicted probability at specific values, you can either run the function on lots of values of interest and subset (like the plot above does) or run the function on just one set of values (i.e. for one condition) of interest.
 
 # How do we interpret the results? What are logit bounds?
 
