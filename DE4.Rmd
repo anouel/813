@@ -4,7 +4,7 @@ output:
   html_document:
     code_folding: hide
     toc: true
-    #toc_float: true
+    toc_float: true
 ---
 
 
@@ -158,7 +158,7 @@ draws %>%
         axis.ticks.y = element_blank())
 ```
 
-Now each draws on two parameters (i.e., two dimensions of our multivariate normal):
+The same draws, plotted on two parameters (i.e., two dimensions of our multivariate normal):
 ```{r multi-normal-2, fig.width=8}
 p <- draws %>% 
   filter(n == 1000) %>% 
@@ -200,10 +200,10 @@ vcov(model)[c(3,5),c(3,5)] %>%
   knitr::kable(caption = "Variance-Covariance Matrix")
 ```
 
-Imagining a multivariate (multi-dimensional) distribution with more than two parameters can be tricky, but to understand uncertianty in logit, we must understand the relationship between *covarience* and predicted probability. 
+To understand uncertianty in logit, we must understand the relationship between *covarience* and predicted probability. Imagining a multivariate (multi-dimensional) distribution with more than two parameters can be tricky. The important thing to remember is that each variable has variance covarience with the other variables. This means that, just our estimated effects of one variable are conditional on the values of the others (we're talking about marginal effects), uncertianty around predicted probabilities is also conditional. 
 
 
-We can thus write a function to estimate a distribution of predicted probabilities using a large number of random draws from the assumed multivariate normal distribution of our model estimates. That is, we draw from a multivariate normal distribution, setting the means to our model estimates and $\sigma$ to the variance-covariance matrix, then calculate the log odds, and, finally, a predicted probability of probation for each draw.
+Using the variance-covariance matrix, we can write a function to estimate a distribution of predicted probabilities using a large number of random draws from the assumed multivariate normal distribution of our model estimates. That is, we draw from a multivariate normal distribution, setting the means to our model parameter estimates and $\sigma$ to those parameters' variance-covariance matrix, then calculate the log odds, and, finally, a predicted probability of probation for each draw.
  
 In Stata:
 ```
@@ -334,7 +334,7 @@ Devin: All of these functions return statistics about a model; the latter three 
 `estat classfication` returns a [classification table](https://stackoverflow.com/questions/13661025/classification-table-for-logistic-regression-in-r). 
 
 [`lroc`](https://stats.idre.ucla.edu/stata/faq/how-can-i-test-the-difference-in-area-under-roc-curve-for-two-logistic-regression-models/) computes the area under the receiver
-operating character (ROC) curve and [`lsens`](https://www.stata.com/manuals13/rlsens.pdf) runs a sensitivity analysis.  I know `ROCR` and [others](https://rviews.rstudio.com/2019/03/01/some-r-packages-for-roc-curves/) do both of these things.
+operating character (ROC) curve and [`lsens`](https://www.stata.com/manuals13/rlsens.pdf) runs a sensitivity analysis.  I know `ROCR` and [other packages](https://rviews.rstudio.com/2019/03/01/some-r-packages-for-roc-curves/) do both of these things.
 
 `estat gof` is a goodness of fit test, specifically the F-test [(recall last week)](https://judgelord.github.io/813/DE3.html#comparing_models). 
 
