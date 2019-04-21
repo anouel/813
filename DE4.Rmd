@@ -279,6 +279,16 @@ predicted %<>%
   mutate(Convict = str_c(Convict, " Conviction(s)")) %>%
   mutate(Report = ifelse(Report == 1, "Report", "No Report"))
 
+# A table
+predicted %>%
+  group_by(Take, Convict, Night, Report) %>% 
+  summarise(lower = quantile(p, probs = .1),
+            upper = quantile(p, probs = .9),
+            mean = mean(p)) %>% 
+  arrange(mean) %>%
+  knitr::kable(caption = "Predicted probabilities of probation, with bounds") 
+
+# A plot of a few of those 
 predicted %>%
   ggplot() +
   aes(x = p, 
@@ -299,7 +309,15 @@ Look familiar?
 To get distributions of predicted probability at specific values, you can either run the function on lots of values of interest and subset (like the plot above does) or run the function on just one set of values:
 
 ```{r}
-
+Logit_bounds(Take = 5000,
+             Convict = 2, 
+             Night = 1, 
+             Report = 0, 
+             model = model) %>%
+  group_by(Take, Convict, Night, Report) %>% 
+  summarise(lower = quantile(p, probs = .1),
+            upper = quantile(p, probs = .9),
+            mean = mean(p)) 
 ```
 
 # How do we interpret the results? What are logit bounds?
