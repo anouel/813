@@ -1,5 +1,5 @@
 ---
-title: "Interpreting Interaction Effects"
+title: "Hypothesis testing and interpreting interaction effects"
 output:
   html_document:
     code_folding: hide
@@ -55,7 +55,9 @@ library(viridisLite)
     scale_fill_viridis_d(..., begin = 0, end = .7)
 ```
 
-Women at the Deer Valley Utility Company claim that their job performances are not rewarded to the same degree as the job performances of men. Is there statistical evidence to support this complaint? This summary analysis for the Director of the Office of Equal Opportunity includes findings and a brief discussion of other factors we may want to investigate before issuing a final report.
+This tutorial covers hypothesis testing and interpreting interaction effects using tidy regression output in **R**, specifically the `broom` and `margins` packages.
+
+Consider this example: Women at the Deer Valley Utility Company claim that the company does not reward their job performances to the same degree as the job performances of men. The Director of the Office of Equal Opportunity wants to know if there is statistical evidence to support this complaint.
 
 We have the following data for 60 people:
 
@@ -67,9 +69,11 @@ We have the following data for 60 people:
 
 `Credits` earned either in college courses or company programs.
 
+**Note:** Click on the `Code` button to see the **R** code for each table and figure. The R Markdown file that made this document is [here](https://github.com/judgelord/813/blob/master/DE3.Rmd). You can reproduce and/or edit it by [cloning](https://www.r-bloggers.com/rstudio-and-github/) this repository: *https://github.com/judgelord/813/* 
+
 <!-- An R chunk to load data -->
 ```{r data}
-load("data/EX3.Rdata")
+load("data/EX3.Rdata") # loads data as "d"
 ```
 
 First, let's examine the raw data. 
@@ -134,6 +138,7 @@ ggplot(m %>% filter(term != "(Intercept)")) +
       ymin = conf.low, 
       ymax = conf.high) + 
   geom_pointrange() + 
+  geom_hline(yintercept = 0, color = "grey") + 
   coord_flip() + 
   labs(x="", y="OLS Estimate")
 ```
@@ -153,9 +158,12 @@ p +
                   ymin = b0 + b1*0), alpha = .1, color = NA)
 ```
 
-Basically, a t-test.
+Basically, a t-test (compare model output to simple t-test of difference in mean `Salary` by `Gender`).
 ```{r}
+# tidy model output object
 m 
+
+# t-test
 t.test(Salary ~ Gender, data = d) %>% tidy()
 ```
 ---
@@ -175,6 +183,7 @@ ggplot(m1 %>% filter(term != "(Intercept)")) +
       ymin = conf.low, 
       ymax = conf.high) + 
   geom_pointrange() + 
+  geom_hline(yintercept = 0, color = "grey") + 
   coord_flip() + 
   labs(x="", y="OLS Estimate")
 ```
@@ -261,6 +270,7 @@ ggplot(m2 %>% filter(term != "(Intercept)")) +
       ymin = conf.low, 
       ymax = conf.high) + 
   geom_pointrange() + 
+  geom_hline(yintercept = 0, color = "grey") + 
   coord_flip() + 
   labs(x="", y="OLS Estimate")
 ```
@@ -338,9 +348,10 @@ ggplot(me) +
       y = AME, 
       ymin = lower, 
       ymax = upper)+
+  geom_pointrange() + 
   geom_hline(yintercept = 0, color = "gray80") +
-    geom_pointrange() + coord_flip() +
-    labs(x = NULL, y = "Average Marginal Effect") 
+  coord_flip() +
+  labs(x = NULL, y = "Average Marginal Effect") 
 
 ## use the cplot method in the margins library to do the work of calculating effects but without drawing its plot.
 cplot_points <- cplot(model_2, x = "Gender", draw = F)
@@ -351,7 +362,8 @@ ggplot(data = cplot_points) +
       ymin = lower, 
       ymax = upper) + 
   geom_pointrange() + 
-  labs(x = NULL, y = "Predicted Salary") 
+  coord_flip() +
+  labs(x = NULL, y = "Predicted Salary (thousands of dollars)") 
 ```
 
 
@@ -400,7 +412,7 @@ lrtest(model_1, model_2)
 
 `summary()` returns some statistics about our model. R-squared ($1- RSS/TSS$) indicates how much of the variance in salary our models explain. The F statistic is the mean regression sum of squares divided by the mean error sum of squares, so a larger F means more variance explained by the model and/or less unexplained variance. Its value will range from zero (a model that explains nothing compared to how much it does not explain) to an arbitrarily large number (a model that explains a lot compared to how much it does not explain). The p-value is for the null hypothesis for the full model is true (i.e., that all of the regression coefficients are zero).
 
-Which model has a higher R-Squared? Why? Is a higher R-Squared always better? 
+Which model has a higher R-Squared? Why? Is a higher R-Squared value always better? 
 
 ```{r f-stats}
 summary(model_1)
@@ -463,6 +475,7 @@ ggplot(m3 %>% filter(term != "(Intercept)")) +
       ymin = conf.low, 
       ymax = conf.high) + 
   geom_pointrange() + 
+  geom_hline(yintercept = 0, color = "grey") + 
   coord_flip() + 
   labs(x="", y="OLS Estimate")
 ```
@@ -541,8 +554,9 @@ ggplot(me) +
       ymin = lower, 
       ymax = upper)+
   geom_hline(yintercept = 0, color = "gray80") +
-    geom_pointrange() + coord_flip() +
-    labs(x = NULL, y = "Average Marginal Effect") 
+  geom_pointrange() + 
+  coord_flip() +
+  labs(x = NULL, y = "Average Marginal Effect") 
 
 ## use the cplot method in the margins library to do the work calculating effects but without drawing its plot.
 cplot_points <- cplot(model_3, x = "Masculinity", draw = F)
@@ -553,6 +567,7 @@ ggplot(data = cplot_points) +
       ymin = lower, 
       ymax = upper) + 
   geom_pointrange() + 
+  geom_hline(yintercept = 0, color = "grey") + 
   labs(x = "Masculinity",
        y = "Predicted Salary") 
 ```

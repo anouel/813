@@ -27,6 +27,7 @@ requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
               "magrittr",
               "mvtnorm",
               "gridExtra",
+               "plotROC",
               "here")
 
 # Install any you don't have
@@ -41,6 +42,7 @@ library(magrittr)
 library(here)
 library(mvtnorm)# for multivariate normals
 library(gridExtra)
+library(plotROC)
 library(ggplot2); theme_set(theme_bw()) # global plot theme
 # Colorblind and greyscale print-friendly scales
   options(
@@ -53,12 +55,16 @@ library(ggplot2); theme_set(theme_bw()) # global plot theme
     scale_fill_viridis_d(..., begin = 0, end = .7)
 ```
 
+**Note:** Click on the `Code` button to see the **R** code for each table and figure. The R Markdown file that made this document is [here](https://github.com/judgelord/813/blob/master/DE4.Rmd). You can reproduce and/or edit it by [cloning](https://www.r-bloggers.com/rstudio-and-github/) this repository: *https://github.com/judgelord/813/* 
+
 # How do we model logit in R?
-## Logit is just a linear model predicting log odds. 
+###  Logit is just a linear model predicting log odds. 
+
 
 ```{r model}
-d <- read_dta("data/EX4.dta") %>% zap_formats() 
+load("data/EX4.Rdata") # loads data as "d"
 
+# general linear model with logit link function
 model <- glm(Probat ~ Take + Report + Night + Convict, 
              data=d, 
              family=binomial(link="logit"))
@@ -76,9 +82,7 @@ But most people have a hard time doing this in their head. A logistic regression
 
 With linear OLS regression, model coefficients have a straightforward interpretation: a model coefficient $\beta$ means that for every one-unit increase in $x$, the model predicts a $\beta$-unit increase in $\hat{Y}$  (the predicted value of the dependent variable). Technically, the logistic regression coefficient means the same thing: as $x$ goes up by 1, the log odds go up by $\beta$. However, log odds are difficult to interpret, especially *relative log odds*: while we can straightforwardly calculate $\beta$ log odds on its own, an *increase* of $\beta$ in log odds means something different *depending on what the log odds increased from*.
 
-tl;dr, interpreting logit means calculating *marginal* effects and *predicted probabilities*
-
-(just like [last week](https://judgelord.github.io/813/DE3.html#better_interpretation))
+### tl;dr, interpreting logit means calculating *marginal* effects and *predicted probabilities*. (just like [last week](https://judgelord.github.io/813/DE3.html#better_interpretation)).
 
 ## Predicted probability
 
@@ -200,7 +204,7 @@ vcov(model)[c(3,5),c(3,5)] %>%
   knitr::kable(caption = "Variance-Covariance Matrix")
 ```
 
-To understand uncertianty in logit, we must understand the relationship between *covarience* and predicted probability. Imagining a multivariate (multi-dimensional) distribution with more than two parameters can be tricky. The important thing to remember is that each variable has variance covarience with the other variables. This means that, just our estimated effects of one variable are conditional on the values of the others (we're talking about marginal effects), uncertianty around predicted probabilities is also conditional. 
+To understand uncertainty in logit, we must understand the relationship between *covariance* and predicted probability. Imagining a multivariate (multi-dimensional) distribution with more than two parameters can be tricky. The important thing to remember is that each variable has variance-covariance with the other variables. This means that, just our estimated effects of one variable are conditional on the values of the others (we're talking about marginal effects), uncertainty around predicted probabilities is also conditional. 
 
 
 Using the variance-covariance matrix, we can write a function to estimate a distribution of predicted probabilities using a large number of random draws from the assumed multivariate normal distribution of our model estimates. That is, we draw from a multivariate normal distribution, setting the means to our model parameter estimates and $\sigma$ to those parameters' variance-covariance matrix, then calculate the log odds, and, finally, a predicted probability of probation for each draw.
@@ -309,25 +313,25 @@ predicted %>%
 
 Look familiar? 
 
-To get distributions of predicted probability at specific values, you can either run the function on lots of values of interest and subset (like the plot above does) or run the function on just one set of values (i.e. for one condition) of interest.
+To get distributions of predicted probability at specific values, you can either run the function on lots of values of interest and subset (like the plot above does) or run the function on just one set of values (i.e., for one condition) of interest.
 
 # How do we interpret the results? What are logit bounds?
 
-Devin: Good question. "Logit_bounds" may not be the best name for the above function. "Logit_distributions" or "Logit_predictions" might be better, since it does not (yet) calculate bounds (i.e. confidence intervals). What it does do is create distributions with a mean and, critically, *variance*, for predicted probabilities of interest. My understanding is that Dave wants you to use these distributions to estimate confidence intervals around certain probabilities of interest in order comment on the extent to which the department should continue writing reports (i.e., under what conditions, if any, can we say these reports matter). 
+Good question. "Logit_bounds" may not be the best name for the above function. "Logit_distributions" or "Logit_predictions" might be better, since it does not (yet) calculate bounds (i.e. confidence intervals). What it does do is create distributions with a mean and, critically, *variance*, for predicted probabilities of interest. We can use these distributions to estimate confidence intervals around certain probabilities of interest in order comment on the extent to which the department should continue writing reports (i.e., under what conditions, if any, can we say these reports matter). 
 
 
 # What are the probabilities of interest? 
 
-Devin: This is a theoretical question. What might policymakers care about?
+This is a theoretical question. What might policymakers care about?
 
 # Can we just use `confint`?
 
-Devin: Yes, in practice, we just use functions under the hood of `augment()`, `Zelig`, `margins`, and `confit()`. The point of this exercise is to understand the concept of a confidence interval around a predicted probability coming from a logit model. Unlike linear regression, we can't just calculate standard errors from variance. Notice that [`confint`](https://www.rdocumentation.org/packages/stats/versions/3.5.3/topics/confint) uses simple $t$ values for models of class `"lm"`, but it requires the variance-covariance matrix for `"glm"` and calls on more complex functions to compute the [profile likelihood](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3873110/). In short, [the math for Logit is not easy](https://freakonometrics.hypotheses.org/52747); it is easier to understand by looking at how the assumed distribution of the parameters translates to the distribution of probabilities.
+Yes, in practice, we just use functions under the hood of `augment()`, `Zelig`, `margins`, and `confit()`. The point of this exercise is to understand the concept of a confidence interval around a predicted probability coming from a logit model. Unlike linear regression, we can't just calculate standard errors from variance. Notice that [`confint`](https://www.rdocumentation.org/packages/stats/versions/3.5.3/topics/confint) uses simple $t$ values for models of class `"lm"`, but it requires the variance-covariance matrix for `"glm"` and calls on more complex functions to compute the [profile likelihood](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3873110/). In short, [the math for Logit is not easy](https://freakonometrics.hypotheses.org/52747); it is easier to understand by looking at how the assumed distribution of the parameters translates to the distribution of probabilities.
 
 
 # How do we run the following commands from Stata in R? `estat gof`, `estat classification`, `lroc`, `lsens`.
 
-Devin: All of these functions return statistics about a model; the latter three about how well it predicts observed outcomes. 
+All of these functions return statistics about a model; the latter three about how well it predicts observed outcomes. 
 
 [`estat`](https://www.reed.edu/psychology/stata/analyses/parametric/Regression/pe/estat.html) returns various model statistics. For many of these statistics, we might use `summary()`, `glance()`, `augment()`, `vcov()` depending on what exactly we are after. 
 
@@ -341,7 +345,7 @@ operating character (ROC) curve and [`lsens`](https://www.stata.com/manuals13/rl
 
 # When should we do sensitivity analyses? 
 
-Devin: We do a sensitivity analysis to evaluate a classification method. Any classification method has a sensitivity/specificity tradeoff; some give relatively more false negatives and others more false positives. Before we can evaluate our classification, we need to do some classifying. Let's start by classifying each case that our model gave probability less than .5 as a (no probation) and the rest a 1 (probation). We can just round our predicted probabilities. 
+We do a sensitivity analysis to evaluate a classification method. Any classification method has a sensitivity/specificity tradeoff; some give relatively more false negatives and others more false positives. Before we can evaluate our classification, we need to do some classifying. Let's start by classifying each case that our model gave probability less than .5 as a (no probation) and the rest a 1 (probation). We can just round our predicted probabilities. 
 
 ```{r}
 predicted <- augment(model,  
@@ -408,8 +412,8 @@ Logistic Regression is core to deep learning, or, conversely [logistic regressio
 
 [A great video tutorial explaining Support Vector Machines ](https://www.youtube.com/watch?v=N1vOgolbjSc)
 
-From a post on stack exchange: 
-```{r predict, fig.width=8, fig.height=5}
+Another example from [a post on Stack Exchange](https://codereview.stackexchange.com/questions/208355/using-dplyr-and-pipes-for-logistic-regression-plotting): 
+```{r predict, fig.width=5, fig.height=10}
 df <- read.csv("https://sciences.ucf.edu/biology/d4lab/wp-content/uploads/sites/125/2018/11/parasites.txt", header = T)
 
 m1 <- glm(data=df, infected ~ age + weight + sex, family = "binomial") # add spaces to variables separated by arithmetic operators
